@@ -1,0 +1,19 @@
+{
+  "name": "iq-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "iq-node": "git+https://github.com/insonifi/iq-node.git",
+    "lodash": "^4.3.0",
+    "nconf": "^0.8.4",
+    "uuid": "^2.0.1",
+    "xmlbuilder": "^4.2.1",
+    "xmldoc": "^0.4.0"
+  }
+}
