@@ -70,6 +70,36 @@ new Promise ((resolve, reject) => {
     }
   });
 })
+.then(() => {
+  /* Get system info */
+  let board = '';
+  let processor = '';
+  let osName= '';
+  let ramSize = 0;
+  const deferBoardInfo = wsman.enumerate({ip: IP, resource: WS.Board, auth: WSMAN_AUTH})
+    .then((items) => board = `${items[0].Manufacturer} ${items[0].Product}`);
+  const deferOSInfo = wsman.enumerate({ip: IP, resource: WS.OS, auth: WSMAN_AUTH})
+    .then((items) => {
+      osName = items[0].Caption;
+      ramSize = items[0].TotalVisibleMemorySize / Math.pow(1024, 2);
+    });
+  const deferCPUInfo = wsman.enumerate({ip: IP, resource: WS.Processor, auth: WSMAN_AUTH})
+    .then((items) => processor = items[0].Name);
+  /* Connect to IIDK */
+  const deferIIDK = iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID});
+
+  Promise.all([deferOSInfo, deferCPUInfo, deferIIDK])
+    .then(() => {
+      console.log(`OS:\t${osName}`);
+      console.log(`CPU:\t${processor}`);
+      console.log(`Board:\t${board}`);
+      console.log(`RAM:\t${ramSize.toFixed(2)}GB`);
+    })
+    .then(() => bootstrap())
+    .catch(log);
+
+})
+.catch(log);
 
 function runTest() {
   /**
