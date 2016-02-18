@@ -1,4 +1,5 @@
 'use strict';
+const fs = require('fs');
 const uuid = require('uuid');
 const _ = require('lodash');
 const nconf = require('nconf');
@@ -23,6 +24,7 @@ const IIDK_ID = nconf.get('iidk');
 const WSMAN_AUTH = nconf.get('wsauth');
 const MONITOR = nconf.get('monitor');
 const STREAM = nconf.get('stream');
+const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
 const TOLERANCE = nconf.get('tolerance');
 const THRESHOLD_RATIO = nconf.get('thresholdRatio');
@@ -50,6 +52,24 @@ iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID})
   .then(() => video.connect({ip: IP, host: HOST}))
   .then(runTest)
   .catch(log);
+/* Prepare video stream URI */
+new Promise ((resolve, reject) => {
+  fs.access(STREAM_PATH, fs.R_OK, (err) => {
+    if (err) {
+      streams.push(STREAM);
+      resolve();
+    } else {
+      fs.readFile(STREAM_PATH, 'utf8', (errRead, data) => {
+        if (errRead) {
+          reject(`${STREAM_PATH} read error`);
+        } else {
+          data.trim().split('\n').forEach((s) => streams.push(s));
+          resolve();
+        }
+      });
+    }
+  });
+})
 
 function runTest() {
   /**
