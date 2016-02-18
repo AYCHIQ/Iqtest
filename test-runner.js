@@ -7,8 +7,6 @@ const iidk = require('./iidk');
 const video = require('./video');
 const wsman = require('./wsman');
 
-const MonitorFps = new Map();
-const GrabberFps = new Map();
 const log = (e) => {
   console.log(e)
   process.exit();
@@ -27,31 +25,40 @@ const STREAM = nconf.get('stream');
 const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
 const TOLERANCE = nconf.get('tolerance');
-const THRESHOLD_RATIO = nconf.get('thresholdRatio');
+const CPU_THRESHOLD = nconf.get('cpu-threshold');
+const CPU_MIN_SAMPLES = nconf.get('cpu-samples');
+const FPS_THRESHOLD = nconf.get('fps-threshold');
 const A = nconf.get('alpha');
 const stopOnExit = nconf.get('stop');
 const INIT_COUNT = nconf.get('cams');
+const VALIDATE_COUNT = nconf.get('validate');
+const DROP_RATIO = 1 - nconf.get('drop');
 
 const VIDEO = 'video.run core';
 const WS = {
+  Board: 'Win32_BaseBoard',
+  OS: 'Win32_OperatingSystem',
   Processor: 'Win32_Processor',
-  ProcessorPerf: 'Win32_PerfFormattedData_Counters_ProcessorInformation',
+  ProcessorPerf: 'Win32_PerfFormattedData_PerfOS_Processor',
   Process: 'Win32_Process',
 }
 
+const MonitorFps = new Map();
+const GrabberFps = new Map();
+const streams = [];
+
 let processorUsage = [];
+let maxCounts = [];
+let startCount = 0;
+let tryNum = 0;
+let startTime = 0;
+let stream = STREAM;
 
 process.on('exit', () => {
   if (stopOnExit) {
     iidk.stopModule(VIDEO);
   } 
 });
-iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID})
-  .then(() => iidk.stopModule(VIDEO))
-  .then(() => iidk.startModule(VIDEO))
-  .then(() => video.connect({ip: IP, host: HOST}))
-  .then(runTest)
-  .catch(log);
 /* Prepare video stream URI */
 new Promise ((resolve, reject) => {
   fs.access(STREAM_PATH, fs.R_OK, (err) => {
@@ -101,7 +108,32 @@ new Promise ((resolve, reject) => {
 })
 .catch(log);
 
+function bootstrap() {
+  processorUsage = [];
+  maxCounts = [];
+  startCount = 0;
+  tryNum = 0;
+  stream = streams.pop();
+  if (stream) {
+    console.log(`RTSP:\t${formatUri(stream)}`);
+    initTest();
+  } else {
+    console.log('Done!');
+    process.exit();
+  }
+}
+
+function initTest () {
+  startTime = Date.now();
+  return iidk.stopModule(VIDEO)
+    .then(() => iidk.startModule(VIDEO))
+    .then(() => video.connect({ip: IP, host: HOST}))
+    .then(runTest)
+    .catch(log);
+}
+
 function runTest() {
+  tryNum += 1;
   /**
    * Commence Test
    */
@@ -109,13 +141,20 @@ function runTest() {
     host: HOST,
     src: STREAM,
   };
-  const  gen = genRTSP(options);
-  let nextId = gen.next().value;
-  let i = 0;
-  /* Create initial number of cameras if defined */
-  for (i; i < INIT_COUNT; i += 1) {
-    nextId = gen.next().value;
+  const gen = genRTSP(options);
+  let nextId = 0; 
+  let count = startCount || INIT_COUNT ;
+
+  function addCams(n) {
+    let i = 0;
+    console.log(`Adding ${n} cams`);
+    for (i; i < n; i += 1) {
+      nextId = gen.next().value;
+    }
   }
+
+  /* Create initial number of cameras if defined */
+  addCams(count);
   video.onstats((msg) => {
     if (/GRABBER.*Receive/.test(msg.id)) {
       let id = /\d+/.exec(msg.id)[0];
@@ -139,16 +178,18 @@ function runTest() {
         MonitorFps.set(id, avg);
         if (isCalm) {
           /* Added camera has stable FPS -> iteration is complete */
-          if (id === nextId.toString()) {
-            console.log(`Cams (CPU%):\t${GrabberFps.size} (${processorUsageString()})`);
+          if (id === nextId.toString() && processorUsage.length > CPU_MIN_SAMPLES) {
+            const camsCount = GrabberFps.size;
+            const usage = medianWin(processorUsage);
+            const specificUsage = usage / camsCount;
+            const n = Math.floor(Math.max(0, (CPU_THRESHOLD - usage)) / specificUsage) + 1;
+            console.log(`Cams (CPU%):\t${camsCount} (${processorUsageString()})`);
             processorUsage = [];
-            /* Add next camera */ 
-            nextId = gen.next().value;
+            /* Add next batch of cameras */ 
+            addCams(n);
           }
           if (!hasFullFps(id)) {
-            video.offstats();
-            console.log(`Failed @ ${GrabberFps.size}\n ${processorUsageString()}`);
-            process.exit();
+            teardown();
           }
         }
       }
@@ -160,8 +201,6 @@ function runTest() {
       wsman.enumerate({ip: IP, resource: WS.ProcessorPerf, auth: WSMAN_AUTH})
         .then((items) => {
           const usage = items.filter((u) => u.Name === '_Total')
-            //.map((u) => u.PercentProcessorTime);
-            //.map((u) => u.PercentProcessorUtility);
             .map((u) => (100 - u.PercentIdleTime));
           processorUsage.push(parseFloat(usage)); 
         });
@@ -169,12 +208,24 @@ function runTest() {
   });
   video.setupMonitor(MONITOR);
   video.statsStart(STAT_INTERVAL);
-  console.log(`RTSP:\t${STREAM}`);
-  wsman.enumerate({ip: IP, resource: WS.Processor, auth: WSMAN_AUTH})
-    .then((items) => {
-      const processor = items[0].Name;
-      console.log(`CPU:\t${processor}`);
-    });
+}
+
+function teardown() {
+  const max = GrabberFps.size;
+  const elapsed = new Date(Date.now() - startTime).toISOString().slice(-10,-1);
+  console.log(`Max: ${max}, finished in ${elapsed}`);
+  MonitorFps.clear();
+  GrabberFps.clear();
+  video.offstats();
+  /* Re-run test to get enough validation points */
+  if (tryNum < VALIDATE_COUNT) {
+    maxCounts.push(max);
+    startCount = Math.floor(max * DROP_RATIO); 
+    initTest();
+  } else {
+    console.log(`Maximum: ${medianWin(maxCounts)} (tries: ${tryNum})`);
+    bootstrap();
+  }
 }
 
 function hasFullFps(id) {
@@ -185,10 +236,7 @@ function hasFullFps(id) {
   let output = MonitorFps.get(id);
   if (!!input && !!output) {
     ratio = output / input;
-    if (THRESHOLD_RATIO > ratio) {
-      // console.log('%d:\t%d (%d/%dfps)',
-      //     id, (ratio*100).toFixed(2),
-      //     output.toFixed(2), input.toFixed(2));
+    if (FPS_THRESHOLD > ratio) {
       ret = false;
     }
   }
@@ -199,7 +247,7 @@ function* genRTSP(options) {
   let id = 0;
   while (true) {
     id += 1;
-    video.setupIpCam(id, STREAM);
+    video.setupIpCam(id, stream);
     yield id;
   }
 }
