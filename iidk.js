@@ -14,39 +14,45 @@ module.exports = {
     })
   },
   startModule(module) {
+    const startReact = {
+      type: 'SLAVE',
+      id: this.host,
+      action: 'EXECUTE_SET',
+      params: {
+        command: module,
+      }
+    };
+    const timer = setInterval(() => iidk.sendCoreReact(startReact), TIMEOUT);
     return new Promise((resolve, reject) => {
       iidk.on({type: 'SLAVE', action: 'EXECUTE_COMPLETE'}, (msg) => {
         if (msg.params.command.includes(module)) {
+          clearInterval(timer);
+          iidk.off({type: 'SLAVE', action: 'EXECUTE_COMPLETE'});
           resolve();
         }
       });
-      iidk.sendCoreReact({
-        type: 'SLAVE',
-        id: this.host,
-        action: 'EXECUTE_SET',
-        params: {
-          command: module,
-        }
-      });
-      setTimeout(() => reject(`${module}: start time out`), TIMEOUT);
+      iidk.sendCoreReact(startReact);
     });
   },
   stopModule(module) {
+    const stopReact = {
+      type: 'SLAVE',
+      id: this.host,
+      action: 'TERMINATE_SET',
+      params: {
+        command: module,
+      }
+    };
+    const timer = setInterval(() => iidk.sendCoreReact(stopReact), TIMEOUT);
     return new Promise((resolve, reject) => {
       iidk.on({type: 'SLAVE', action: 'TERMINATE_COMPLETE'}, (msg) => {
         if (msg.params.command.includes(module)) {
+          clearInterval(timer);
+          iidk.off({type: 'SLAVE', action: 'TERMINATE_COMPLETE'});
           resolve();
         }
       });
-      iidk.sendCoreReact({
-        type: 'SLAVE',
-        id: this.host,
-        action: 'TERMINATE_SET',
-        params: {
-          command: module,
-        }
-      });
-      setTimeout(() => reject(`${module}: stop time out`), TIMEOUT);
+      iidk.sendCoreReact(stopReact);
     });
   },
   updateObj(objtype, objid, settings) {
