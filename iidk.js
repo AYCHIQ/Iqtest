@@ -1,6 +1,6 @@
 'use strict';
 const iidk = require('iq-node');
-const TIMEOUT = 5000;
+const TIMEOUT = 30000;
 module.exports = {
   connect(options) {
     this.host = options.host;
