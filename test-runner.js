@@ -205,12 +205,22 @@ function* genRTSP(options) {
 }
 
 function processorUsageString() {
+  let median = medianWin(processorUsage); 
   let min = Math.min.apply(null, processorUsage);
   let max = Math.max.apply(null, processorUsage);
-  let arith = aMean(processorUsage).toFixed(2);
-  let geom = gMean(processorUsage).toFixed(2);
-  let median = medianWin(processorUsage).toFixed(2); 
-  return `min: ${min}, max: ${max}, arithmetic: ${arith}, geometric: ${geom}, median ${median}`;
+  // let arith = aMean(processorUsage).toFixed(2);
+  // let geom = gMean(processorUsage).toFixed(2);
+  //return `min: ${min}, max: ${max}, arithmetic: ${arith}, geometric: ${geom}, median ${median}`;
+  return `${min}% ${median}% ${max}%`;
+}
+
+function formatUri(uri) {
+  const locationRe = /location=(.+?).!/;
+  if (locationRe.test(uri)) {
+    return locationRe.exec(uri)[1];
+  } else {
+    return uri;
+  }
 }
 
 function aMean(arr) {
@@ -221,17 +231,28 @@ function gMean(arr) {
   const product = arr.reduce((p, val) => p *= val > 0 ? val : 1, 1);
   return Math.pow(product, 1 / arr.length);
 }
-function medianWin(arr) {
-  const len1_3 = arr.length / 3;
-  let win1_2 = 0;
-  let win = [];
-  let medianIdxA = 0;
-  let medianIdxB = 0;
 
-  arr.sort();
-  win = arr.slice(Math.floor(len1_3), Math.ceil(2*len1_3));
-  win1_2 = win.length / 2;
-  medianIdxA = win[Math.floor(win1_2)];
-  medianIdxB = win[Math.ceil(win1_2)];
-  return  (medianIdxA + medianIdxB) / 2;
+function medianWin(arr) {
+  switch (arr.length) {
+    case 0:
+      return undefined;
+    case 1:
+      return arr[0];
+    case 2:
+      return (arr[0] + arr[1]) / 2;
+    default: {
+      const len1_3 = arr.length / 3;
+      let win1_2 = 0;
+      let win = [];
+      let mA = 0;
+      let mB = 0;
+
+      arr.sort(function (a,b) { return a - b; });
+      win = arr.slice(Math.floor(len1_3), Math.ceil(2*len1_3));
+      win1_2 = win.length / 2;
+      mA = Math.ceil(win1_2);
+      mB = mA === win1_2 ? mA + 1 : mA ;
+      return  (win[mA-1] + win[mB-1]) / 2;
+    }
+  }
 }
