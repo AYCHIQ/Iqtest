@@ -7,11 +7,7 @@ const iidk = require('./iidk');
 const video = require('./video');
 const wsman = require('./wsman');
 
-const log = (e) => {
-  console.log(e)
-  process.exit();
-};
-
+/* Initialize parameters */
 nconf.argv()
   nconf.argv()
   .file({file: './config.json'});
@@ -34,6 +30,7 @@ const INIT_COUNT = nconf.get('cams');
 const VALIDATE_COUNT = nconf.get('validate');
 const DROP_RATIO = 1 - nconf.get('drop');
 
+/* General constants */
 const VIDEO = 'video.run core';
 const WS = {
   Board: 'Win32_BaseBoard',
@@ -43,6 +40,7 @@ const WS = {
   Process: 'Win32_Process',
 }
 
+/* Global variables */
 const MonitorFps = new Map();
 const GrabberFps = new Map();
 const streams = [];
@@ -59,6 +57,7 @@ process.on('exit', () => {
     iidk.stopModule(VIDEO);
   } 
 });
+
 /* Prepare video stream URI */
 new Promise ((resolve, reject) => {
   fs.access(STREAM_PATH, fs.R_OK, (err) => {
@@ -97,16 +96,16 @@ new Promise ((resolve, reject) => {
 
   Promise.all([deferOSInfo, deferCPUInfo, deferIIDK])
     .then(() => {
-      console.log(`OS:\t${osName}`);
-      console.log(`CPU:\t${processor}`);
-      console.log(`Board:\t${board}`);
-      console.log(`RAM:\t${ramSize.toFixed(2)}GB`);
+      stdout(`OS:\t${osName}`);
+      stdout(`CPU:\t${processor}`);
+      stdout(`Board:\t${board}`);
+      stdout(`RAM:\t${ramSize.toFixed(2)}GB`);
     })
     .then(() => bootstrap())
-    .catch(log);
+    .catch(logError);
 
 })
-.catch(log);
+.catch(logError);
 
 function bootstrap() {
   processorUsage = [];
@@ -115,10 +114,10 @@ function bootstrap() {
   tryNum = 0;
   stream = streams.pop();
   if (stream) {
-    console.log(`RTSP:\t${formatUri(stream)}`);
+    stdout(`RTSP:\t${formatUri(stream)}`);
     initTest();
   } else {
-    console.log('Done!');
+    stderr('Done!');
     process.exit();
   }
 }
@@ -129,7 +128,7 @@ function initTest () {
     .then(() => iidk.startModule(VIDEO))
     .then(() => video.connect({ip: IP, host: HOST}))
     .then(runTest)
-    .catch(log);
+    .catch(logError);
 }
 
 function runTest() {
@@ -147,7 +146,7 @@ function runTest() {
 
   function addCams(n) {
     let i = 0;
-    console.log(`Adding ${n} cams`);
+    stderr(`Adding ${n} cams`);
     for (i; i < n; i += 1) {
       nextId = gen.next().value;
     }
@@ -183,7 +182,7 @@ function runTest() {
             const usage = medianWin(processorUsage);
             const specificUsage = usage / camsCount;
             const n = Math.floor(Math.max(0, (CPU_THRESHOLD - usage)) / specificUsage) + 1;
-            console.log(`Cams (CPU%):\t${camsCount} (${processorUsageString()})`);
+            stderr(`Cams (CPU%):\t${camsCount} (${processorUsageString()})`);
             processorUsage = [];
             /* Add next batch of cameras */ 
             addCams(n);
@@ -213,7 +212,7 @@ function runTest() {
 function teardown() {
   const max = GrabberFps.size;
   const elapsed = new Date(Date.now() - startTime).toISOString().slice(-10,-1);
-  console.log(`Max: ${max}, finished in ${elapsed}`);
+  stderr(`Max: ${max}, finished in ${elapsed}`);
   MonitorFps.clear();
   GrabberFps.clear();
   video.offstats();
@@ -223,7 +222,7 @@ function teardown() {
     startCount = Math.floor(max * DROP_RATIO); 
     initTest();
   } else {
-    console.log(`Maximum: ${medianWin(maxCounts)} (tries: ${tryNum})`);
+    stdout(`Maximum: ${medianWin(maxCounts)} (tries: ${tryNum})`);
     bootstrap();
   }
 }
@@ -304,3 +303,14 @@ function medianWin(arr) {
     }
   }
 }
+
+function stdout(m) {
+  process.stdout.write(`${m}\n`);
+}
+function stderr(m) {
+  process.stderr.write(`${m}\n`);
+}
+function logError (e) {
+  stderr(e)
+  process.exit();
+};
