@@ -3,6 +3,13 @@ const iidk = require('iq-node');
 const TIMEOUT = 30000;
 const KEEPALIVE = 30000;
 
+iidk.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
+  process.stderr.write('IIDK disconnected\n');  
+});
+iidk.on({type: 'IQ', action: 'CONNECTED'}, () => {
+  process.stderr.write('IIDK connected\n');  
+});
+
 module.exports = {
   keepAliveTimer: null,
   resetKATimer() {
