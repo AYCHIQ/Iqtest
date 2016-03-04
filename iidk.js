@@ -1,17 +1,26 @@
 'use strict';
 const iidk = require('iq-node');
 const TIMEOUT = 30000;
+const KEEPALIVE = 30000;
+
 module.exports = {
+  keepAliveTimer: null,
+  resetKATimer() {
+    clearTimeout(this.keepAliveTimer);
+    this.keepAliveTimer = setTimeout(() => iidk.sendEvent({}), KEEPALIVE);
+  },
   connect(options) {
     this.host = options.host;
-    return iidk.connect(Object.assign({port: 'iidk'}, options));
+    return iidk.connect(Object.assign({port: 'iidk'}, options))
+      .then(this.resetKATimer.bind(this));
   },
   restartModules() {
     iidk.sendEvent({
       type: 'SLAVE',
       id: this.host,
       action: 'RUN_SLAVES',
-    })
+    });
+    this.resetKATimer();
   },
   startModule(module) {
     const startReact = {
@@ -22,16 +31,18 @@ module.exports = {
         command: module,
       }
     };
+    const executeComplete = {type: 'SLAVE', action: 'EXECUTE_COMPLETE'};
     const timer = setInterval(() => iidk.sendCoreReact(startReact), TIMEOUT);
     return new Promise((resolve, reject) => {
-      iidk.on({type: 'SLAVE', action: 'EXECUTE_COMPLETE'}, (msg) => {
+      iidk.on(executeComplete, (msg) => {
         if (msg.params.command.includes(module)) {
           clearInterval(timer);
-          iidk.off({type: 'SLAVE', action: 'EXECUTE_COMPLETE'});
+          iidk.off(executeComplete);
           resolve();
         }
       });
       iidk.sendCoreReact(startReact);
+      this.resetKATimer();
     });
   },
   stopModule(module) {
@@ -43,16 +54,18 @@ module.exports = {
         command: module,
       }
     };
+    const terminateComplete = {type: 'SLAVE', action: 'TERMINATE_COMPLETE'};
     const timer = setInterval(() => iidk.sendCoreReact(stopReact), TIMEOUT);
     return new Promise((resolve, reject) => {
-      iidk.on({type: 'SLAVE', action: 'TERMINATE_COMPLETE'}, (msg) => {
+      iidk.on(terminateComplete, (msg) => {
         if (msg.params.command.includes(module)) {
           clearInterval(timer);
-          iidk.off({type: 'SLAVE', action: 'TERMINATE_COMPLETE'});
+          iidk.off(terminateComplete);
           resolve();
         }
       });
       iidk.sendCoreReact(stopReact);
+      this.resetKATimer();
     });
   },
   updateObj(objtype, objid, settings) {
@@ -65,5 +78,6 @@ module.exports = {
       action: 'UPDATE_OBJECT',
       params,
     });
+    this.resetKATimer();
   },
 };
