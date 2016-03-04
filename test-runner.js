@@ -105,6 +105,7 @@ new Promise ((resolve, reject) => {
       stdout(`CPU:\t${processor}`);
       stdout(`Board:\t${board}`);
       stdout(`RAM:\t${ramSize.toFixed(2)}GB`);
+      stdout(`Tries:\t{VALIDATE_COUNT}`);
     })
     .then(() => bootstrap())
     .catch(logError);
@@ -209,8 +210,7 @@ function runTest() {
         monitorFails += 1;
         if (monitorFails > MAX_MONITOR_FAILS) {
           tryNum -= 1;
-          stderr(`No fps received in ${monitorFails} reports`);
-          teardown(); 
+          teardown(`No fps received in ${monitorFails} reports`); 
         }
       }
     }
@@ -229,20 +229,24 @@ function runTest() {
   video.setupMonitor(MONITOR);
 }
 
-function teardown() {
+function teardown(err) {
   const max = GrabberFps.size;
   const elapsed = new Date(Date.now() - startTime).toISOString().slice(-10,-1);
-  stderr(`Max: ${max}, finished in ${elapsed}`);
   MonitorFps.clear();
   GrabberFps.clear();
   video.offstats();
   /* Re-run test to get enough validation points */
   if (tryNum < VALIDATE_COUNT) {
-    maxCounts.push(max);
-    startCount = Math.floor(max * DROP_RATIO); 
+    if (!err) {
+      stderr(`Max: ${max}, finished in ${elapsed}`);
+      maxCounts.push(max);
+      startCount = Math.floor(maxCounts[-1] || 0);
+    } else {
+      stderr(err);
+    }
     initTest();
   } else {
-    stdout(`Maximum: ${medianWin(maxCounts)} (tries: ${tryNum})`);
+    stdout(`Maximum: ${medianWin(maxCounts)}`);
     bootstrap();
   }
 }
