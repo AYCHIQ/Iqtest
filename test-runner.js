@@ -273,7 +273,7 @@ function processorUsageString() {
 }
 
 function formatUri(uri) {
-  const locationRe = /location=(.+?).!/;
+  const locationRe = /location=([^`]+).+?!/;
   if (locationRe.test(uri)) {
     return locationRe.exec(uri)[1];
   } else {
