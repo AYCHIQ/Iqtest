@@ -29,6 +29,7 @@ const stopOnExit = nconf.get('stop');
 const INIT_COUNT = nconf.get('cams');
 const VALIDATE_COUNT = nconf.get('validate');
 const DROP_RATIO = 1 - nconf.get('drop');
+const MAX_MONITOR_FAILS = nconf.get('monitor-fails');
 
 /* General constants */
 const VIDEO = 'video.run core';
@@ -94,6 +95,8 @@ new Promise ((resolve, reject) => {
   /* Connect to IIDK */
   const deferIIDK = iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID});
 
+  video.stats(STAT_INTERVAL);
+  
   Promise.all([deferOSInfo, deferCPUInfo, deferIIDK])
     .then(() => {
       stdout(`OS:\t${osName}`);
@@ -206,7 +209,6 @@ function runTest() {
     }
   });
   video.setupMonitor(MONITOR);
-  video.statsStart(STAT_INTERVAL);
 }
 
 function teardown() {

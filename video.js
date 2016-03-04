@@ -148,15 +148,16 @@ module.exports = {
     this.host = options.host;
     return video.connect(Object.assign({port: 'video'}, options));
   },
-  statsStart(interval) {
-    video.sendReact({
-      type: 'STATISTIC',
-      action: 'START',
-      params: {
-        interval: interval || 1,
-        slave_id: this.host,
-      }
-    });
+  stats(interval) {
+    video.on({type: 'IQ', action: 'CONNECTED'},
+      () => video.sendReact({
+        type: 'STATISTIC',
+        action: 'START',
+        params: {
+          interval: interval || 1,
+          slave_id: this.host,
+        }
+      }));
   },
   statsStop() {
     video.sendReact({
