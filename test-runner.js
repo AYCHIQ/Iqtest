@@ -143,9 +143,11 @@ function runTest() {
     host: HOST,
     src: STREAM,
   };
-  const gen = genRTSP(options);
   let nextId = 0; 
   let count = startCount || INIT_COUNT ;
+  let monitorFails = 0;
+  const gen = genRTSP(options);
+  const isCurrentCam = (id) => id.toString() === nextId.toString();
 
   function addCams(n) {
     let i = 0;
@@ -180,7 +182,7 @@ function runTest() {
         MonitorFps.set(id, avg);
         if (isCalm) {
           /* Added camera has stable FPS -> iteration is complete */
-          if (id === nextId.toString() && processorUsage.length > CPU_MIN_SAMPLES) {
+          if (isCurrentCam(id) && processorUsage.length > CPU_MIN_SAMPLES) {
             const camsCount = GrabberFps.size;
             const usage = medianWin(processorUsage);
             const specificUsage = usage / camsCount;
@@ -193,6 +195,13 @@ function runTest() {
           if (!hasFullFps(id)) {
             teardown();
           }
+        }
+      } else if (isCurrentCam(id)) {
+        monitorFails += 1;
+        if (monitorFails > MAX_MONITOR_FAILS) {
+          tryNum -= 1;
+          stderr(`No fps received in ${monitorFails} reports`);
+          teardown(); 
         }
       }
     }
