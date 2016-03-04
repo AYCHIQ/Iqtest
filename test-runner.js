@@ -20,6 +20,7 @@ const MONITOR = nconf.get('monitor');
 const STREAM = nconf.get('stream');
 const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
+const STAT_TIMEOUT = STAT_INTERVAL * 10;
 const TOLERANCE = nconf.get('tolerance');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
 const CPU_MIN_SAMPLES = nconf.get('cpu-samples');
@@ -52,6 +53,7 @@ let startCount = 0;
 let tryNum = 0;
 let startTime = 0;
 let stream = STREAM;
+let timer = null;
 
 process.on('exit', () => {
   if (stopOnExit) {
@@ -132,6 +134,13 @@ function initTest () {
     .then(() => video.connect({ip: IP, host: HOST}))
     .then(runTest)
     .catch(logError);
+}
+function resetTimer () {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    tryNum -= 1;
+    teardown('Statistics timeout');
+  }, STAT_TIMEOUT);
 }
 
 function runTest() {
