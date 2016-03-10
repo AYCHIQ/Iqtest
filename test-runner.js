@@ -243,7 +243,7 @@ function teardown(err) {
     if (!err) {
       stderr(`Max: ${max}, finished in ${elapsed}`);
       maxCounts.push(max);
-      startCount = Math.floor(maxCounts[maxCounts.length - 1] || 0);
+      startCount = Math.floor((maxCounts[maxCounts.length - 1] || 0) * DROP_RATIO);
     } else {
       stderr(err);
     }
