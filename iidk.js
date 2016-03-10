@@ -14,7 +14,8 @@ module.exports = {
   keepAliveTimer: null,
   resetKATimer() {
     clearTimeout(this.keepAliveTimer);
-    this.keepAliveTimer = setTimeout(() => iidk.sendEvent({}), KEEPALIVE);
+    this.keepAliveTimer = setTimeout(() =>
+        iidk.sendEvent({type: 'ACTIVEX', action: 'GET_LIST'}), KEEPALIVE);
   },
   connect(options) {
     this.host = options.host;
