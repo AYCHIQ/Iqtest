@@ -234,7 +234,7 @@ function runTest() {
 
 function teardown(err) {
   const max = GrabberFps.size;
-  const elapsed = new Date(Date.now() - startTime).toISOString().slice(-10,-1);
+  const elapsed = getTime(Date.now() - startTime);
   MonitorFps.clear();
   GrabberFps.clear();
   video.offstats();
@@ -332,17 +332,15 @@ function medianWin(arr) {
   }
 }
 function progressTime() {
-  const now = Date.now();
-  const elapsed = getTime(new Date(now - globalStartTime));
+  const elapsedMs = Date.now() - globalStartTime;
   const doneStreams = streamIdx + 1;
   const rate = elapsed / doneStreams;
   const estimatedMs = (streams.length - doneStreams) / rate;
-  const estimated = getTime(new Date(estimatedMs));
 
-  return `Elapsed time: ${elapsed}, Estimated time: ${estimated}`;
+  return `Elapsed time: ${getTime(elapsed)}, Estimated time: ${getTime(estimated)}`;
 }
 function getTime(t) {
-  return t.toISOString().slice(11, 24);
+  return new Date(t).toISOString().slice(11, 24);
 }
 function stdout(m) {
   process.stdout.write(`${m}\n`);
