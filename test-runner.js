@@ -47,6 +47,8 @@ const MonitorFps = new Map();
 const GrabberFps = new Map();
 const streams = [];
 
+const globalStartTime = Date.now();
+let streamIdx = 0;
 let processorUsage = [];
 let maxCounts = [];
 let startCount = 0;
@@ -118,7 +120,8 @@ function bootstrap() {
   maxCounts = [];
   startCount = 0;
   tryNum = 0;
-  stream = streams.pop();
+  stream = streams[streamIdx];
+  streamIdx += 1;
   if (stream) {
     stdout(`RTSP:\t${formatUri(stream)}`);
     initTest();
@@ -247,6 +250,7 @@ function teardown(err) {
     initTest();
   } else {
     stdout(`Maximum: ${medianWin(maxCounts)}`);
+    stderr(`${progressTime()} ${streamIdx + 1}/${streams.length}`);
     bootstrap();
   }
 }
@@ -327,7 +331,19 @@ function medianWin(arr) {
     }
   }
 }
+function progressTime() {
+  const now = Date.now();
+  const elapsed = getTime(new Date(now - globalStartTime));
+  const doneStreams = streamIdx + 1;
+  const rate = elapsed / doneStreams;
+  const estimatedMs = (streams.length - doneStreams) / rate;
+  const estimated = getTime(new Date(estimatedMs));
 
+  return `Elapsed time: ${elapsed}, Estimated time: ${estimated}`;
+}
+function getTime(t) {
+  return t.toISOString().slice(11, 24);
+}
 function stdout(m) {
   process.stdout.write(`${m}\n`);
 }
