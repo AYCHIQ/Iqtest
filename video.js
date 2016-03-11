@@ -1,5 +1,5 @@
 'use strict';
-const IqClient = require('iq-node');
+const IqClient = require('iq-node').Client;
 const video = new IqClient(); 
 
 const GRABPARAMS = {
