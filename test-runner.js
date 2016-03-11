@@ -96,24 +96,26 @@ new Promise ((resolve, reject) => {
     });
   const deferCPUInfo = wsman.enumerate({ip: IP, resource: WS.Processor, auth: WSMAN_AUTH})
     .then((items) => processor = items[0].Name);
-  /* Connect to IIDK */
-  const deferIIDK = iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID});
 
   video.stats(STAT_INTERVAL);
   
-  Promise.all([deferOSInfo, deferCPUInfo, deferIIDK])
+  Promise.all([deferOSInfo, deferCPUInfo])
     .then(() => {
       stdout(`OS:\t${osName}`);
       stdout(`CPU:\t${processor}`);
       stdout(`Board:\t${board}`);
       stdout(`RAM:\t${ramSize.toFixed(2)}GB`);
       stdout(`Tries:\t{VALIDATE_COUNT}`);
+
+      iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID})
     })
-    .then(() => bootstrap())
     .catch(logError);
 
 })
 .catch(logError);
+
+iidk.onconnect(() => bootstrap);
+iidk.ondisconnect(() => streamIdx -= 1);
 
 function bootstrap() {
   processorUsage = [];
