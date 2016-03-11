@@ -1,14 +1,9 @@
 'use strict';
-const iidk = require('iq-node');
+const IqClient = require('iq-node').Client;
+const iidk = new IqClient();
 const TIMEOUT = 30000;
 const KEEPALIVE = 30000;
 
-iidk.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
-  process.stderr.write('IIDK disconnected\n');  
-});
-iidk.on({type: 'IQ', action: 'CONNECTED'}, () => {
-  process.stderr.write('IIDK connected\n');  
-});
 
 module.exports = {
   keepAliveTimer: null,
@@ -22,6 +17,18 @@ module.exports = {
     return iidk.connect(Object.assign({port: 'iidk'}, options))
       .then(this.resetKATimer.bind(this));
   },
+  onconnect(fn) {
+    iidk.on({type: 'IQ', action: 'CONNECTED'}, () => {
+      process.stderr.write('IIDK connected\n');  
+      fn();
+    });
+  }
+  ondisconnect(fn) {
+    iidk.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
+      process.stderr.write('IIDK disconnected\n');  
+      fn();
+    });
+  }
   restartModules() {
     iidk.sendEvent({
       type: 'SLAVE',

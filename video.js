@@ -1,5 +1,6 @@
 'use strict';
-const video = require('iq-node');
+const IqClient = require('iq-node');
+const video = new IqClient(); 
 
 const GRABPARAMS = {
   _TRANSPORT_ID: '',
@@ -91,7 +92,6 @@ const CAMPARAMS = {
   yuv: '',
 };
 const MONITORPARAMS = {
-  '43': '',
   'CAM.arch.count': '0',
   'CAM.cam.count': '0',
   'CAM.compression.count': '0',
