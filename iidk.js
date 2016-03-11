@@ -22,13 +22,13 @@ module.exports = {
       process.stderr.write('IIDK connected\n');  
       fn();
     });
-  }
+  },
   ondisconnect(fn) {
     iidk.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
       process.stderr.write('IIDK disconnected\n');  
       fn();
     });
-  }
+  },
   restartModules() {
     iidk.sendEvent({
       type: 'SLAVE',
