@@ -101,11 +101,11 @@ new Promise ((resolve, reject) => {
   
   Promise.all([deferOSInfo, deferCPUInfo])
     .then(() => {
-      stdout(`OS:\t${osName}`);
-      stdout(`CPU:\t${processor}`);
-      stdout(`Board:\t${board}`);
-      stdout(`RAM:\t${ramSize.toFixed(2)}GB`);
-      stdout(`Tries:\t{VALIDATE_COUNT}`);
+      stdout(`OS:\t${osName}\n`);
+      stdout(`CPU:\t${processor}\n`);
+      stdout(`Board:\t${board}\n`);
+      stdout(`RAM:\t${ramSize.toFixed(2)}GB\n`);
+      stdout(`Tries:\t{VALIDATE_COUNT}\n`);
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID})
     })
@@ -128,7 +128,7 @@ function bootstrap() {
     stdout(`RTSP:\t${formatUri(stream)}`);
     initTest();
   } else {
-    stderr('Done!');
+    stderr('Done!\n');
     process.exit();
   }
 }
@@ -166,13 +166,12 @@ function runTest() {
 
   function addCams(n) {
     let i = 0;
-    stderr(`Adding ${n} cams`);
+    stderr(`+${n}`);
     for (i; i < n; i += 1) {
       nextId = gen.next().value;
     }
   }
 
-  /* Create initial number of cameras if defined */
   addCams(count);
   video.onstats((msg) => {
     if (/GRABBER.*Receive/.test(msg.id)) {
@@ -202,7 +201,7 @@ function runTest() {
             const usage = medianWin(processorUsage);
             const specificUsage = usage / camsCount;
             const n = Math.floor(Math.max(0, (CPU_THRESHOLD - usage)) / specificUsage) + 1;
-            stderr(`Cams (CPU%):\t${camsCount} (${processorUsageString()})`);
+            stderr(`(${camsCount} [${processorUsageString()}])`);
             processorUsage = [];
             /* Add next batch of cameras */ 
             addCams(n);
@@ -215,7 +214,7 @@ function runTest() {
         monitorFails += 1;
         if (monitorFails > MAX_MONITOR_FAILS) {
           tryNum -= 1;
-          teardown(`No fps received in ${monitorFails} reports`); 
+          teardown(`No fps received in ${monitorFails} reports\n`); 
         }
       }
     }
@@ -243,16 +242,16 @@ function teardown(err) {
   /* Re-run test to get enough validation points */
   if (tryNum < VALIDATE_COUNT) {
     if (!err) {
-      stderr(`Max: ${max}, finished in ${elapsed}`);
+      stderr(`Max: ${max}, finished in ${elapsed}\n`);
       maxCounts.push(max);
-      startCount = Math.floor((maxCounts[maxCounts.length - 1] || 0) * DROP_RATIO);
+      startCount = Math.ceil((maxCounts[maxCounts.length - 1] || 1) * DROP_RATIO);
     } else {
       stderr(err);
     }
     initTest();
   } else {
-    stdout(`Maximum: ${medianWin(maxCounts)}`);
-    stderr(`${progressTime()} ${streamIdx + 1}/${streams.length}`);
+    stdout(`Maximum: ${medianWin(maxCounts)}\n`);
+    stderr(`${progressTime()} ${streamIdx}/${streams.length}\n`);
     bootstrap();
   }
 }
@@ -335,20 +334,20 @@ function medianWin(arr) {
 }
 function progressTime() {
   const elapsedMs = Date.now() - globalStartTime;
-  const doneStreams = streamIdx + 1;
-  const rate = elapsed / doneStreams;
-  const estimatedMs = (streams.length - doneStreams) / rate;
+  const doneStreams = streamIdx;
+  const rate = elapsedMs / doneStreams;
+  const estimatedMs = (streams.length - doneStreams) * rate;
 
-  return `Elapsed time: ${getTime(elapsed)}, Estimated time: ${getTime(estimated)}`;
+  return `Elapsed time: ${getTime(elapsedMs)}, Estimated remaining time: ${getTime(estimatedMs)}`;
 }
 function getTime(t) {
-  return new Date(t).toISOString().slice(11, 24);
+  return new Date(t).toISOString().slice(11, 19);
 }
 function stdout(m) {
-  process.stdout.write(`${m}\n`);
+  process.stdout.write(m);
 }
 function stderr(m) {
-  process.stderr.write(`${m}\n`);
+  process.stderr.write(m);
 }
 function logError (e) {
   stderr(e)
