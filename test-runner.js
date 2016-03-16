@@ -65,6 +65,12 @@ process.on('exit', () => {
     iidk.stopModule(VIDEO);
   } 
 });
+process.on('uncaughtException', (err) => {
+  console.log(`Caught exception: ${err}`);
+});
+process.on('unhandledRejection', (reason, p) => {
+  console.log("Unhandled Rejection at: Promise ", p, " reason: ", reason);
+}
 
 /* Prepare video stream URI */
 new Promise ((resolve, reject) => {
