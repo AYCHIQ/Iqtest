@@ -216,6 +216,9 @@ function runTest() {
         }
       } else if (isCurrentCam) {
         monitorFails += 1;
+        if ((monitorFails % MAX_MONITOR_FAILS / STAT_INTERVAL) === 0) {
+          video.startVideo(id);
+        }
         if (monitorFails > MAX_MONITOR_FAILS) {
           tryNum -= 1;
           teardown(`\nNo fps received in ${monitorFails} reports\n`); 
