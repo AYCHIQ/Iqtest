@@ -148,13 +148,11 @@ function initTest () {
 function resetTimer () {
   clearTimeout(timer);
   timer = setTimeout(() => {
-    tryNum -= 1;
     teardown('Statistics timeout');
   }, STAT_TIMEOUT);
 }
 
 function runTest() {
-  tryNum += 1;
   /**
    * Commence Test
    */
@@ -243,21 +241,26 @@ function teardown(err) {
   MonitorFps.clear();
   GrabberFps.clear();
   video.offstats();
+  if (err) {
+    tryNum -= 1;
+    stderr(err);
+    startCount = Math.ceil((max || 1) * DROP_RATIO);
+    initTest();
+    return;
+  }
   /* Re-run test to get enough validation points */
   if (tryNum < VALIDATE_COUNT) {
-    if (!err) {
-      stderr(`Max: ${max}, finished in ${elapsed}\n`);
-      maxCounts.push(max);
-      startCount = Math.ceil((maxCounts[maxCounts.length - 1] || 1) * DROP_RATIO);
-    } else {
-      stderr(err);
-    }
+    stderr(`\nMax: ${max}, finished in ${elapsed}\n`);
+    maxCounts.push(max);
+    startCount = Math.ceil((max || 1) * DROP_RATIO);
+    tryNum += 1;
     initTest();
   } else {
-    stdout(`Maximum: ${medianWin(maxCounts)}\n`);
-    stderr(`${progressTime()} ${streamIdx}/${streams.length}\n`);
+    stdout(`\tMaximum: ${medianWin(maxCounts)}\n`);
+    stderr(`\n${progressTime()} ${streamIdx}/${streams.length}\n`);
     bootstrap();
   }
+  return;
 }
 
 function hasFullFps(id) {
