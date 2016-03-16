@@ -164,7 +164,6 @@ function runTest() {
   let count = startCount || INIT_COUNT ;
   let monitorFails = 0;
   const gen = genRTSP(options);
-  const isCurrentCam = (id) => id.toString() === nextId.toString();
 
   function addCams(n) {
     let i = 0;
@@ -189,6 +188,8 @@ function runTest() {
     if (/MONITOR.*CAM.*IN/.test(msg.id)) {
       let id = /\[CAM]\[(\d+)]/.exec(msg.id)[1];
       let fps = parseFloat(msg.params.fps);
+      const isCurrentCam = id.toString() === nextId.toString();
+
       if (fps !== 0) {
         let input = GrabberFps.get(id);
         let oldFps = MonitorFps.has(id) ?  MonitorFps.get(id) : input;
@@ -198,7 +199,7 @@ function runTest() {
         MonitorFps.set(id, avg);
         if (isCalm) {
           /* Added camera has stable FPS -> iteration is complete */
-          if (isCurrentCam(id) && processorUsage.length > CPU_MIN_SAMPLES) {
+          if (isCurrentCam && processorUsage.length > CPU_MIN_SAMPLES) {
             const camsCount = GrabberFps.size;
             const usage = medianWin(processorUsage);
             const specificUsage = usage / camsCount;
@@ -212,7 +213,7 @@ function runTest() {
             teardown();
           }
         }
-      } else if (isCurrentCam(id)) {
+      } else if (isCurrentCam) {
         monitorFails += 1;
         if (monitorFails > MAX_MONITOR_FAILS) {
           tryNum -= 1;
