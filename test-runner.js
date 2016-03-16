@@ -271,17 +271,16 @@ function teardown(err) {
 
 function hasFullFps(id) {
   let ratio = 1.0;
-  let ret = true;
 
   let input = GrabberFps.get(id);
   let output = MonitorFps.get(id);
   if (!!input && !!output) {
     ratio = output / input;
     if (FPS_THRESHOLD > ratio) {
-      ret = false;
+      return false;
     }
   }
-  return ret;
+  return true;
 }
 
 function* genRTSP(options) {
