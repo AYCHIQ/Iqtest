@@ -108,7 +108,7 @@ new Promise ((resolve, reject) => {
       stdout(`CPU:\t${processor}\n`);
       stdout(`Board:\t${board}\n`);
       stdout(`RAM:\t${ramSize.toFixed(2)}GB\n`);
-      stdout(`Tries:\t{VALIDATE_COUNT}\n`);
+      stdout(`Tries:\t${VALIDATE_COUNT}\n`);
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID})
     })
