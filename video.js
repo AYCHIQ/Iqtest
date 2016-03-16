@@ -142,6 +142,8 @@ const MONITORPARAMS = {
   x: '0',
   y: '0',
 };
+video.on({type: 'IQ', action: 'CONNECTED'}, () => process.stderr.write('\nVideo connected\n'));
+video.on({type: 'IQ', action: 'DISCONNECTED'}, () => process.stderr.write('\nVideo disconnected\n'));
 
 module.exports = {
   connect(options) {
@@ -173,6 +175,16 @@ module.exports = {
   },
   offstats() {
     video.off({type: 'STATISTIC', action: 'SET'});
+  },
+  onconnect(fn) {
+    video.on({type: 'IQ', action: 'CONNECTED'}, () => {
+      fn();
+    });
+  },
+  ondisconnect(fn) {
+    video.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
+      fn();
+    });
   },
   deleteObjs(type, id) {
     video.sendReact({
