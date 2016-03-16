@@ -136,12 +136,13 @@ function bootstrap() {
   }
 }
 
+video.onconnect(() => runTest());
+
 function initTest () {
   startTime = Date.now();
   return iidk.stopModule(VIDEO)
     .then(() => iidk.startModule(VIDEO))
     .then(() => video.connect({ip: IP, host: HOST, reconnect: true}))
-    .then(runTest)
     .catch(logError);
 }
 function resetTimer () {
