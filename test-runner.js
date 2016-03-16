@@ -197,6 +197,7 @@ function runTest() {
         let avg = oldFps + A * delta;
         let isCalm = Math.abs(delta / input) < TOLERANCE;
         MonitorFps.set(id, avg);
+        monitorFails = 0;
         if (isCalm) {
           /* Added camera has stable FPS -> iteration is complete */
           if (isCurrentCam && processorUsage.length > CPU_MIN_SAMPLES) {
