@@ -33,6 +33,9 @@ const DROP_RATIO = 1 - nconf.get('drop');
 const MAX_MONITOR_FAILS = nconf.get('monitor-fails');
 
 /* General constants */
+const SECONDS = 1000;
+const MINUTES = 60 * SECONDS;
+const HOURS = 60 * MINUTES;
 const VIDEO = 'video.run core';
 const WS = {
   Board: 'Win32_BaseBoard',
@@ -341,7 +344,16 @@ function progressTime() {
   return `Elapsed time: ${getTime(elapsedMs)}, Estimated remaining time: ${getTime(estimatedMs)}`;
 }
 function getTime(t) {
-  return new Date(t).toISOString().slice(11, 19);
+  const hrs = toDoubleDigit(t / HOURS);
+  const m = t % HOURS;
+  const min = toDoubleDigit(Math.trunc(m / MINUTES));
+  const s = m % MINUTES;
+  const sec = toDoubleDigit(m / MINUTES);
+
+  return `${hrs}:${min}:${sec}`;
+}
+function toDoubleDigit(x) {
+  return `00${x.toFixed(0)}`.slice(-2);
 }
 function stdout(m) {
   process.stdout.write(m);
