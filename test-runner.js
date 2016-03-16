@@ -205,7 +205,7 @@ function runTest() {
             const usage = medianWin(processorUsage);
             const specificUsage = usage / camsCount;
             const n = Math.floor(Math.max(0, (CPU_THRESHOLD - usage)) / specificUsage) + 1;
-            stderr(`=${camsCount} ${processorUsageString()}, `);
+            stderr(`=${camsCount}\t${processorUsageString()}\t`);
             processorUsage = [];
             /* Add next batch of cameras */ 
             addCams(n);
@@ -218,7 +218,7 @@ function runTest() {
         monitorFails += 1;
         if (monitorFails > MAX_MONITOR_FAILS) {
           tryNum -= 1;
-          teardown(`No fps received in ${monitorFails} reports\n`); 
+          teardown(`\nNo fps received in ${monitorFails} reports\n`); 
         }
       }
     }
