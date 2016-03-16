@@ -257,5 +257,12 @@ module.exports = {
   //       stream_id: cam + '.1',
       }
     });
-  }
+  },
+  startVideo(cam) {
+    video.sendReact({
+      type: 'CAM',
+      id: cam,
+      action: 'START_VIDEO',
+    });
+  },
 };
