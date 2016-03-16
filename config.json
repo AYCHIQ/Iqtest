@@ -6,7 +6,7 @@
   "tolerance": 0.01,
   "fps-threshold": 0.9,
   "cpu-threshold": 60,
-  "cpu-samples": 4,
+  "cpu-samples": 6,
   "alpha": 0.333,
   "cams": 1,
   "stop": true,
