@@ -241,8 +241,9 @@ function runTest() {
 }
 
 function teardown(err) {
-  const max = GrabberFps.size;
+  const max = MonitorFps.size;
   const elapsed = getTime(Date.now() - startTime);
+
   MonitorFps.clear();
   GrabberFps.clear();
   video.offstats();
