@@ -110,7 +110,7 @@ new Promise ((resolve, reject) => {
       stdout(`RAM:\t${ramSize.toFixed(2)}GB\n`);
       stdout(`Tries:\t${VALIDATE_COUNT}\n`);
 
-      iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID})
+      iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
     })
     .catch(logError);
 
@@ -140,7 +140,7 @@ function initTest () {
   startTime = Date.now();
   return iidk.stopModule(VIDEO)
     .then(() => iidk.startModule(VIDEO))
-    .then(() => video.connect({ip: IP, host: HOST}))
+    .then(() => video.connect({ip: IP, host: HOST, reconnect: true}))
     .then(runTest)
     .catch(logError);
 }
