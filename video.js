@@ -246,10 +246,10 @@ module.exports = {
       action: 'REMOVE_ALL',
     });
   },
-  showCam(cam, monitor) {
+  showCam(cam, id) {
     video.sendReact({
       type: 'MONITOR',
-      id: monitor,
+      id,
       action: 'ADD_SHOW',
       params: {
         cam,
@@ -258,11 +258,14 @@ module.exports = {
       }
     });
   },
-  startVideo(cam) {
+  startVideo(cam, id) {
     video.sendReact({
       type: 'CAM',
       id: cam,
       action: 'START_VIDEO',
+      params: {
+        slave_id: `${this.host}.${id}`,
+      },
     });
   },
 };

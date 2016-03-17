@@ -70,7 +70,7 @@ process.on('uncaughtException', (err) => {
 });
 process.on('unhandledRejection', (reason, p) => {
   console.log("Unhandled Rejection at: Promise ", p, " reason: ", reason);
-}
+});
 
 /* Prepare video stream URI */
 new Promise ((resolve, reject) => {
@@ -223,7 +223,7 @@ function runTest() {
       } else if (isCurrentCam) {
         monitorFails += 1;
         if ((monitorFails % MAX_MONITOR_FAILS / STAT_INTERVAL) === 0) {
-          video.startVideo(id);
+          video.startVideo(id, MONITOR);
         }
         if (monitorFails > MAX_MONITOR_FAILS) {
           tryNum -= 1;
