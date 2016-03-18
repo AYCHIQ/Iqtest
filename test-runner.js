@@ -357,12 +357,11 @@ function medianWin(arr) {
   }
 }
 function progressTime() {
-  const elapsedMs = Date.now() - timing.elapsed('global');
   const doneStreams = streamIdx;
-  const rate = elapsedMs / doneStreams;
+  const rate = timing.elapsed('global') / doneStreams;
   const estimatedMs = (streams.length - doneStreams) * rate;
 
-  return `Elapsed time: ${getTime(elapsedMs)}, Estimated remaining time: ${getTime(estimatedMs)}`;
+  return `Elapsed time: ${timing.elapsedString('global')}, Estimated remaining time: ${timing.getTimeString(estimatedMs)}`;
 }
 function stdout(m) {
   process.stdout.write(m);

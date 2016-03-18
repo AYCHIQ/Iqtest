@@ -14,9 +14,9 @@ class Timing {
     return Date.now() - this.time.get(key);
   }
   elapsedString(key) {
-    return this.getTime(this.elapsed(key));
+    return this.getTimeString(this.elapsed(key));
   }
-  getTime(t) {
+  getTimeString(t) {
     const hrs = this.toDoubleDigit(t / HOURS);
     const m = t % HOURS;
     const min = this.toDoubleDigit(m / MINUTES);
