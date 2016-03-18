@@ -66,10 +66,10 @@ process.on('exit', () => {
   } 
 });
 process.on('uncaughtException', (err) => {
-  console.log(`Caught exception: ${err}`);
+  stderr(`\n${progressTime()}\nCaught exception: ${err}\n`);
 });
 process.on('unhandledRejection', (reason, p) => {
-  console.log("Unhandled Rejection at: Promise ", p, " reason: ", reason);
+  stderr(`\n${progressTime()}\nUnhandled Rejection at: Promise ${p} reason: ${reason}\n`);
 });
 
 /* Prepare video stream URI */
