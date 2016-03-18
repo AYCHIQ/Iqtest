@@ -64,10 +64,10 @@ process.on('exit', () => {
   } 
 });
 process.on('uncaughtException', (err) => {
-  stderr(`\n${progressTime()}\nCaught exception: ${err}\n`);
+  console.error(`${progressTime()}\nCaught exception:`, err);
 });
 process.on('unhandledRejection', (reason, p) => {
-  stderr(`\n${progressTime()}\nUnhandled Rejection at: Promise ${p} reason: ${reason}\n`);
+  console.error(`${progressTime()}\nUnhandled Rejection at: Promise `, p, 'reason: ', reason.stack);
 });
 
 /* Prepare video stream URI */
@@ -371,5 +371,5 @@ function stderr(m) {
   process.stderr.write(m);
 }
 function logError (e) {
-  stderr(e)
+  console.error(e);
 };
