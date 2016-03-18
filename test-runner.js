@@ -6,6 +6,7 @@ const nconf = require('nconf');
 const iidk = require('./iidk');
 const video = require('./video');
 const wsman = require('./wsman');
+const timing = require('./timing');
 
 /* Initialize parameters */
 nconf.argv()
@@ -50,15 +51,15 @@ const MonitorFps = new Map();
 const GrabberFps = new Map();
 const streams = [];
 
-const globalStartTime = Date.now();
 let streamIdx = 0;
 let processorUsage = [];
 let maxCounts = [];
 let startCount = 0;
 let tryNum = 0;
-let startTime = 0;
 let stream = STREAM;
 let timer = null;
+
+timing.init('global');
 
 process.on('exit', () => {
   if (stopOnExit) {
@@ -133,6 +134,7 @@ function bootstrap() {
   tryNum = 0;
   stream = streams[streamIdx];
   streamIdx += 1;
+  timing.init('stream');
   if (stream) {
     stdout(`${formatUri(stream)}`);
     initTest();
@@ -145,7 +147,7 @@ function bootstrap() {
 video.onconnect(() => runTest());
 
 function initTest () {
-  startTime = Date.now();
+  timing.init('test');
   return iidk.stopModule(VIDEO)
     .then(() => iidk.startModule(VIDEO))
     .then(() => video.connect({ip: IP, host: HOST, reconnect: true}))
@@ -248,7 +250,7 @@ function runTest() {
 
 function teardown(err) {
   const max = MonitorFps.size;
-  const elapsed = getTime(Date.now() - startTime);
+  const testTime = getTime(timing.elapsed('test');
 
   MonitorFps.clear();
   GrabberFps.clear();
@@ -262,13 +264,15 @@ function teardown(err) {
   }
   /* Re-run test to get enough validation points */
   if (tryNum < VALIDATE_COUNT) {
-    stderr(`\nMax: ${max}, finished in ${elapsed}\n`);
+    const testTime = getTime(timing.elapsed('test'));
+    stderr(`\nMax: ${max}, finished in ${testTime}\n`);
     maxCounts.push(max);
     startCount = Math.ceil((max || 1) * DROP_RATIO);
     tryNum += 1;
     initTest();
   } else {
-    stdout(`\tMaximum: ${medianWin(maxCounts)}\n`);
+    const streamTime = getTime(timing.elapsed('stream'));
+    stdout(`\tMaximum: ${medianWin(maxCounts)} in ${streamTime}\n`);
     stderr(`\n${progressTime()} ${streamIdx}/${streams.length}\n`);
     bootstrap();
   }
