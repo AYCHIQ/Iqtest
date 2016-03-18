@@ -111,11 +111,12 @@ new Promise ((resolve, reject) => {
   
   Promise.all([deferOSInfo, deferCPUInfo])
     .then(() => {
-      stdout(`OS:\t${osName}\n`);
-      stdout(`CPU:\t${processor}\n`);
-      stdout(`Board:\t${board}\n`);
-      stdout(`RAM:\t${ramSize.toFixed(2)}GB\n`);
-      stdout(`Tries:\t${VALIDATE_COUNT}\n`);
+      stdout(`OS\t${osName}\n`);
+      stdout(`CPU\t${processor}\n`);
+      stdout(`Board\t${board}\n`);
+      stdout(`RAM\t${ramSize.toFixed(2)}GB\n`);
+      stdout(`Tries\t${VALIDATE_COUNT}\n`);
+      stdout(`Stream\tMax.cameras\tElapsed time\n`);
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
     })
@@ -272,7 +273,7 @@ function teardown(err) {
     initTest();
   } else {
     const streamTime = getTime(timing.elapsed('stream'));
-    stdout(`\tMaximum: ${medianWin(maxCounts)} in ${streamTime}\n`);
+    stdout(`\t${medianWin(maxCounts)}\t${streamTime}\n`);
     stderr(`\n${progressTime()} ${streamIdx}/${streams.length}\n`);
     bootstrap();
   }
