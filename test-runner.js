@@ -134,7 +134,7 @@ function bootstrap() {
   stream = streams[streamIdx];
   streamIdx += 1;
   if (stream) {
-    stdout(`RTSP:\t${formatUri(stream)}`);
+    stdout(`${formatUri(stream)}`);
     initTest();
   } else {
     stderr('Done!\n');
