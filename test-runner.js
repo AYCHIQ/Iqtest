@@ -378,5 +378,4 @@ function stderr(m) {
 }
 function logError (e) {
   stderr(e)
-  process.exit();
 };
