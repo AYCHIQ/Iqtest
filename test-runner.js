@@ -115,7 +115,11 @@ new Promise ((resolve, reject) => {
       stdout(`CPU\t${processor}\n`);
       stdout(`Board\t${board}\n`);
       stdout(`RAM\t${ramSize.toFixed(2)}GB\n`);
-      stdout(`Tries\t${VALIDATE_COUNT}\n`);
+      stdout(`Max.cam. samples\t${VALIDATE_COUNT}\n`);
+      stdout(`CPU usage samples\t${CPU_MIN_SAMPLES}\n`);
+      stdout(`Stat. interval\t${STAT_INTERVAL}\n`);
+      stdout(`FPS threshold\t${FPS_THRESHOLD * 100}%\n`);
+      stdout(`FPS toleranxe\t${TOLERANCE * 100}%\n`);
       stdout(`Stream\tMax.cameras\tElapsed time\n`);
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
