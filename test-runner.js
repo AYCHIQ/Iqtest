@@ -34,9 +34,6 @@ const DROP_RATIO = 1 - nconf.get('drop');
 const MAX_MONITOR_FAILS = nconf.get('monitor-fails');
 
 /* General constants */
-const SECONDS = 1000;
-const MINUTES = 60 * SECONDS;
-const HOURS = 60 * MINUTES;
 const VIDEO = 'video.run core';
 const WS = {
   Board: 'Win32_BaseBoard',
@@ -255,7 +252,7 @@ function runTest() {
 
 function teardown(err) {
   const max = MonitorFps.size;
-  const testTime = getTime(timing.elapsed('test');
+  const testTime = timing.elapsedString('test');
 
   MonitorFps.clear();
   GrabberFps.clear();
@@ -269,14 +266,14 @@ function teardown(err) {
   }
   /* Re-run test to get enough validation points */
   if (tryNum < VALIDATE_COUNT) {
-    const testTime = getTime(timing.elapsed('test'));
+    const testTime = timing.elapsedString('test');
     stderr(`\nMax: ${max}, finished in ${testTime}\n`);
     maxCounts.push(max);
     startCount = Math.ceil((max || 1) * DROP_RATIO);
     tryNum += 1;
     initTest();
   } else {
-    const streamTime = getTime(timing.elapsed('stream'));
+    const streamTime = timing.elapsedString('stream');
     stdout(`\t${medianWin(maxCounts)}\t${streamTime}\n`);
     stderr(`\n${progressTime()} ${streamIdx}/${streams.length}\n`);
     bootstrap();
@@ -360,24 +357,12 @@ function medianWin(arr) {
   }
 }
 function progressTime() {
-  const elapsedMs = Date.now() - globalStartTime;
+  const elapsedMs = Date.now() - timing.elapsed('global');
   const doneStreams = streamIdx;
   const rate = elapsedMs / doneStreams;
   const estimatedMs = (streams.length - doneStreams) * rate;
 
   return `Elapsed time: ${getTime(elapsedMs)}, Estimated remaining time: ${getTime(estimatedMs)}`;
-}
-function getTime(t) {
-  const hrs = toDoubleDigit(t / HOURS);
-  const m = t % HOURS;
-  const min = toDoubleDigit(Math.trunc(m / MINUTES));
-  const s = m % MINUTES;
-  const sec = toDoubleDigit(m / MINUTES);
-
-  return `${hrs}:${min}:${sec}`;
-}
-function toDoubleDigit(x) {
-  return `00${x.toFixed(0)}`.slice(-2);
 }
 function stdout(m) {
   process.stdout.write(m);
