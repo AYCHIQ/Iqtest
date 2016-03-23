@@ -267,9 +267,12 @@ function teardown(err) {
   /* Re-run test to get enough validation points */
   if (tryNum < VALIDATE_COUNT) {
     const testTime = timing.elapsedString('test');
+    const usage = medianWin(processorUsage);
+    const specificUsage = usage / max;
+    const dropCount =  Math.ceil(CPU_THRESHOLD / specificUsage);
     stderr(`\nMax: ${max}, finished in ${testTime}\n`);
     maxCounts.push(max);
-    startCount = Math.ceil((max || 1) * DROP_RATIO);
+    startCount = dropCount;
     tryNum += 1;
     initTest();
   } else {
