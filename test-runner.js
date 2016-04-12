@@ -486,12 +486,42 @@ function processorUsageString() {
   const mean = ex.attempt.cpu.mean;
   const max = ex.attempt.cpu.max;
 
-function formatUri(uri) {
+  return `${min}%…${mean}%…${max}%`;
+}
+/**
+ * Extract stream information encoded in filename
+ * within RTSP URI.
+ * Vendor+Name_H264_800x600_30.ts ->
+ * {
+ *  vendor: Vendor Name,
+ *  format: H264,
+ *  width: 800,
+ *  height: 600,
+ *  fps: 30
+ * }
+ * @params {string}
+ * returns {object}
+ */
+function parseUri(uri) {
   const locationRe = /location=([^`]+).+?!/;
+  const keys = ['vendor', 'format', 'width', 'height', 'fps'];
   if (locationRe.test(uri)) {
-    return locationRe.exec(uri)[1];
+    return locationRe.exec(uri)[1] //get "location=..." fragment
+      .replace(/.+\//, '') //remove folder ".../"
+      .replace(/\..*/, '') //remove extension ".*"
+      .replace(/\+/g, ' ')
+      .replace(/_/g, '\t')
+      .replace(/(\d+)x(\d+)/g, '$1\t$2') //split WxH
+      .split('\t')
+      .reduce((r, val, idx) => {
+          r.res[r.keys[idx]] = val;
+            return r;
+      }, {res: {}, keys})
+      .res;
   } else {
-    return uri;
+    return {
+      vendor: uri,
+    };
   }
 }
 /**
