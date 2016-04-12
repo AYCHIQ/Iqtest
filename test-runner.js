@@ -335,6 +335,11 @@ function bootstrap() {
   ex.stream = streams[streamIdx];
   streamIdx += 1;
   timing.init('stream');
+  wsman.enumerate({ip: IP, resource: WS.LocalTime, auth: WSMAN_AUTH})
+    .then(items => {
+      const d = items[0];
+      ex.start = `${d.Year}-${d.Month}-${d.Day} ${d.Hour}:${d.Minute}:${d.Second}`;
+    });
   if (ex.stream) {
     initTest();
   } else {
