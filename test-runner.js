@@ -253,10 +253,10 @@ process.on('exit', () => {
   } 
 });
 process.on('uncaughtException', (err) => {
-  console.error(`${progressTime()}\nCaught exception:`, err);
+  console.error(`\n${progressTime()}\nCaught exception:`, err);
 });
 process.on('unhandledRejection', (reason, p) => {
-  console.error(`${progressTime()}\nUnhandled Rejection at: Promise `, p, 'reason: ', reason.stack);
+  console.error(`\n${progressTime()}\nUnhandled Rejection at: Promise `, p, 'reason: ', reason.stack);
 });
 
 /* Prepare video stream URI */
