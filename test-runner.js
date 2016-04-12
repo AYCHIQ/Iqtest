@@ -304,12 +304,13 @@ new Promise ((resolve, reject) => {
       stdout(`CPU\t${processor}\n`);
       stdout(`Board\t${board}\n`);
       stdout(`RAM\t${ramSize.toFixed(2)}GB\n`);
-      stdout(`Max.cam. samples\t${VALIDATE_COUNT}\n`);
-      stdout(`CPU usage samples\t${CPU_MIN_SAMPLES}\n`);
+      stdout(`Stream samples\t${VALIDATE_COUNT}\n`);
       stdout(`Stat. interval\t${STAT_INTERVAL}\n`);
+      stdout(`CPU usage samples\t${CPU_SAMPLES}\n`);
+      stdout(`FPS samples\t${FPS_SAMPLES}\n`);
       stdout(`FPS threshold\t${FPS_THRESHOLD * 100}%\n`);
       stdout(`FPS tolerance\t${TOLERANCE * 100}%\n`);
-      stdout(`Stream\tMax.cameras\tElapsed time\n`);
+      stdout(`Vendor\tFormat\tWidth\tHeight\tFPS\tFPS(input)\tMax.cameras\tCPU\tScore\tStart time\tElapsed time\n`);
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
     })
@@ -488,7 +489,29 @@ function formatUri(uri) {
     return uri;
   }
 }
+/**
+ * Format experiment report
+ * @param {Experiment} e
+ * @returns {string}
+ */
+function report(e) {
+    const s = e.streamAttr;
+    const vendor = s.vendor;
+    const format = s.format;
+    const width = s.width;
+    const height = s.height;
+    const sfps = s.fps;
+    const cpu = e.cpu.toLocaleString('de-DE');
+    const fps = e.fps.toLocaleString('de-DE');
+    const cams = e.cams;
+    const score = e.score.toLocaleString('de-DE');
+    const start = e.start;
+    const elapsed = e.elapsed;
 
+    return `${vendor}\t${format}\t${width}\t${height}\t` +
+            `${sfps}\t${fps}\t${cams}\t${cpu}\t` +
+            `${score}\t${start}\t${elapsed}\n`;
+}
 function aMean(arr) {
   const sum = arr.reduce((sum, val) => sum += val, 0);
   return sum / arr.length;
