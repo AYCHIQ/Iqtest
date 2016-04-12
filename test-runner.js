@@ -289,7 +289,7 @@ new Promise ((resolve, reject) => {
   const deferOSInfo = wsman.enumerate({ip: IP, resource: WS.OS, auth: WSMAN_AUTH})
     .then((items) => {
       osName = items[0].Caption;
-      ramSize = items[0].TotalVisibleMemorySize / Math.pow(1024, 2);
+      ramSize = items[0].TotalVisibleMemorySize / Math.pow(2, 20);
     })
     .catch(logError);
   const deferCPUInfo = wsman.enumerate({ip: IP, resource: WS.Processor, auth: WSMAN_AUTH})
