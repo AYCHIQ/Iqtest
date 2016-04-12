@@ -284,14 +284,17 @@ new Promise ((resolve, reject) => {
   let osName= '';
   let ramSize = 0;
   const deferBoardInfo = wsman.enumerate({ip: IP, resource: WS.Board, auth: WSMAN_AUTH})
-    .then((items) => board = `${items[0].Manufacturer} ${items[0].Product}`);
+    .then((items) => board = `${items[0].Manufacturer} ${items[0].Product}`)
+    .catch(logError);
   const deferOSInfo = wsman.enumerate({ip: IP, resource: WS.OS, auth: WSMAN_AUTH})
     .then((items) => {
       osName = items[0].Caption;
       ramSize = items[0].TotalVisibleMemorySize / Math.pow(1024, 2);
-    });
+    })
+    .catch(logError);
   const deferCPUInfo = wsman.enumerate({ip: IP, resource: WS.Processor, auth: WSMAN_AUTH})
-    .then((items) => processor = items[0].Name);
+    .then((items) => processor = items[0].Name)
+    .catch(logError);
 
   video.stats(STAT_INTERVAL);
   
