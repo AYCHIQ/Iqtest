@@ -38,23 +38,212 @@ const VIDEO = 'video.run core';
 const WS = {
   Board: 'Win32_BaseBoard',
   OS: 'Win32_OperatingSystem',
+  LocalTime: 'Win32_LocalTime',
   Processor: 'Win32_Processor',
   ProcessorPerf: 'Win32_PerfFormattedData_PerfOS_Processor',
   Process: 'Win32_Process',
 }
 
 /* Global variables */
-const MonitorFps = new Map();
-const GrabberFps = new Map();
 const streams = [];
+/**
+ * @class
+ * @param {object} options -- attempt options
+ * @property {map} monitorFps -- FPS displayed in monitor
+ * @property {map} grabberFps -- FPS received from driver
+ * @property {array} cpuSamples -- last CPU usage samples
+ * @property {number} monitorFails -- number of time we suspected failure
+ * @property {number} count -- number of added cameras
+ * @property {object} cpu -- returns min, mean, max CPU usage
+ * @property {number} fps -- mean input FPS
+ * @property {number} camsQuota -- number of cameras we can safely add
+ * @method addFps -- add FPS sample
+ * @method addCpu -- add CPU sample
+ * @method clearCpu -- clear CPU samples 
+ * @method hasEnoughFps -- check readiness by FPS samples
+ * @method hasEnoughCpu -- check readiness by CPU samples
+ * @method isCalm -- check that system metrics has stabilised
+ */
+class Attempt {
+  constructor(options) {
+    this.options = options;
+    this.monitorFps = new Map();
+    this.grabberFps = new Map();
+    this.cpuSamples = [];
+    this.monitorFails = 0;
+  }
+  /**
+   * Add FPS sample for camera
+   *
+   * @param {number} id -- camera Id
+   * @param {number} fps -- FPS sample
+   * @returns
+   */
+  addFps(id, fps) {
+    let samples = this.monitorFps.get(id) || [];
+    samples.push(fps);
+    this.monitorFps.set(id, samples.slice(-this.options.fpsLen));
+    this.monitorFails = 0;
+  }
+  /**
+   * @param {number} cpu -- CPU usage sample
+   * @returns
+   */
+  addCpu(cpu) {
+    if (isFinite(cpu)) {
+      this.cpuSamples.push(parseFloat(cpu));
+      this.cpuSamples = this.cpuSamples.slice(-this.options.cpuLen);
+    }
+  }
+  /**
+   * @returns
+   */
+  clearCpu() {
+    this.cpuSamples = [];
+  }
+  get cpu() {
+    return {
+      min: Math.min.apply(null, this.cpuSamples),
+      mean: medianWin(this.cpuSamples),
+      max: Math.max.apply(null, this.cpuSamples),
+    }
+  }
+  get fps() {
+    return aMean(Array.from(this.grabberFps).map(kv => kv[1]));
+  }
+  /**
+   * @param {number} id -- camera Id
+   * @return {boolean}
+   */
+  hasEnoughFps(id) {
+    return this.monitorFps.get(id).length === this.options.fpsLen;
+  }
+  hasEnoughCpu() {
+    return this.cpuSamples.length === this.options.cpuLen;
+  }
+  isCalm(id) {
+    const input = this.grabberFps.get(id);
+    const samples = this.monitorFps.get(id);
 
+    return this.hasEnoughFps(id) && (stdDev(samples) / input) < this.options.tolerance;
+  }
+  get count() {
+    return this.grabberFps.size;
+  }
+  get camsQuota() {
+    const camsCount = this.count;
+    const usage = this.cpu.mean;
+    const cpuThreshold = this.options.cpuThreshold;
+    const specificUsage = usage / camsCount;
+
+    return Math.floor(Math.max(0, (cpuThreshold - usage)) / specificUsage) + 1;
+  }
+  hasFullFps(id) {
+    let ratio = 1.0;
+
+    const input = this.grabberFps.get(id);
+    const output = medianWin(this.monitorFps.get(id));
+    if (!!input && !!output) {
+      ratio = output / input;
+      if (this.options.fpsThreshold > ratio) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+/** 
+ * @class
+ *
+ * @param {object} options -- experiment options
+ * @property {string} start -- start time fetched from tested server
+ * @property {string} elapsed -- time spent for single stream test
+ * @property {number} startCount -- number of cameras to start attempt with
+ * @property {string} stream -- RTSP stream URI
+ * @property {object} streamAttr -- RTSP stream attributes (parsed)
+ * @property {array} attempts -- experiment attempts
+ * @property {Attempt} attempt -- current test Attempt
+ * @property {number} numAttempt -- number of completed Attempts
+ * @property {number} cpu -- mean CPU usage over Attempts
+ * @property {number} cams -- mean maximum camera number over Attempts
+ * @property {number} fps -- mean FPS over Attempts
+ * @property {boolean} isPending -- needs more Attempts to complete
+ * @method newAttempt -- create new test Attempt
+ * @method invalidAtmp -- remove last Attempt
+ * @method dropCound -- calculate startCount according to dropRatio
+ */
+class Experiment {
+  constructor(options) {
+    /**
+     * @namespace
+     * @member {number} fpsLen -- length of FPS sample window
+     * @member {number} cpuLen -- length of CPU usage sample window
+     * @member {number} tolerance -- tolerance for FPS standard deviation
+     * @member {number} dropRatio -- relative decrease of startCount for next iteration
+     * @member {number} fpsThreshold -- threshold of FPS acceptability 
+     * @member {number} cpuThreshold -- threshold of CPU high load
+     * @member {number} validateCount -- number of Attempts that
+     *                                   must be completed to finish Experiment
+     */
+    this.options = options;
+    this.start = '';
+    this.elapsed = '';
+    this.streamUri = '';
+    this._sattr = {};
+    this.attempts = [];
+    this.startCount = 1;
+  }
+  newAttempt() {
+    this.attempts.push(new Attempt(this.options));
+  }
+  get attempt() {
+    const last = this.attempts.length - 1;
+    return this.attempts[last];
+  }
+  invalidAtmp() {
+    this.attempts.pop();
+  }
+  set stream(uri) {
+    this.streamUri = uri;
+    if (uri){
+      this._sattr = parseUri(uri);
+    }
+  }
+  get stream() {
+    return this.streamUri;
+  }
+  get streamAttr() {
+    return this._sattr;
+  }
+  dropCount() {
+    this.startCount = Math.ceil((this.attempt.count || 1) * this.options.dropRatio);
+  }
+  get isPending() {
+    return this.attempts.length < this.options.validateCount;
+  }
+  get cams() {
+    return Math.round(aMean(this.attempts.map(a => a.count)));
+  }
+  get cpu() {
+    return aMean(this.attempts.map(a => a.cpu.mean));
+  }
+  get fps() {
+    return aMean(this.attempts.map(a => a.fps));
+  }
+  get score() {
+    const width = parseInt(this.streamAttr.width);
+    const height = parseInt(this.streamAttr.height);
+    const cams = this.cams;
+    const fps = this.fps;
+    const cpu = this.cpu;
+
+    return (width * height * cams * fps) / (Math.pow(2, 20) * cpu);
+  }
+
+}
 let streamIdx = 0;
-let processorUsage = [];
-let maxCounts = [];
-let startCount = 0;
-let tryNum = 0;
-let stream = STREAM;
 let timer = null;
+let ex = new Experiment();
 
 timing.init('global');
 
@@ -130,15 +319,19 @@ iidk.onconnect(() => bootstrap());
 iidk.ondisconnect(() => streamIdx -= 1);
 
 function bootstrap() {
-  processorUsage = [];
-  maxCounts = [];
-  startCount = 0;
-  tryNum = 0;
-  stream = streams[streamIdx];
+  ex = new Experiment({
+    fpsLen: FPS_SAMPLES,
+    cpuLen: CPU_SAMPLES,
+    tolerance: TOLERANCE,
+    dropRatio: DROP_RATIO,
+    fpsThreshold: FPS_THRESHOLD,
+    cpuThreshold: CPU_THRESHOLD,
+    validateCount: VALIDATE_COUNT,
+  });
+  ex.stream = streams[streamIdx];
   streamIdx += 1;
   timing.init('stream');
-  if (stream) {
-    stdout(`${formatUri(stream)}`);
+  if (ex.stream) {
     initTest();
   } else {
     stderr('Done!\n');
@@ -149,6 +342,7 @@ function bootstrap() {
 video.onconnect(() => runTest());
 
 function initTest () {
+  ex.newAttempt();
   timing.init('test');
   return iidk.stopModule(VIDEO)
     .then(() => iidk.startModule(VIDEO))
@@ -171,8 +365,7 @@ function runTest() {
     src: STREAM,
   };
   let nextId = 0; 
-  let count = startCount || INIT_COUNT ;
-  let monitorFails = 0;
+  let count = ex.startCount;
   const gen = genRTSP(options);
 
   function addCams(n) {
@@ -186,52 +379,46 @@ function runTest() {
   addCams(count);
   video.onstats((msg) => {
     if (/GRABBER.*Receive/.test(msg.id)) {
-      let id = /\d+/.exec(msg.id)[0];
-      let fps = parseFloat(msg.params.fps);
-      GrabberFps.set(id, fps);
-      if (!MonitorFps.has(id)) {
+      const id = /\d+/.exec(msg.id)[0];
+      const fps = parseFloat(msg.params.fps);
+      ex.attempt.grabberFps.set(id, fps);
+      if (!ex.attempt.monitorFps.has(id)) {
         video.showCam(id, MONITOR);
       }
     }
   });
   video.onstats((msg) => {
     if (/MONITOR.*CAM.*IN/.test(msg.id)) {
-      let id = /\[CAM]\[(\d+)]/.exec(msg.id)[1];
-      let fps = parseFloat(msg.params.fps);
+      const id = /\[CAM]\[(\d+)]/.exec(msg.id)[1];
+      const fps = parseFloat(msg.params.fps);
       const isCurrentCam = id.toString() === nextId.toString();
 
       if (fps !== 0) {
-        let input = GrabberFps.get(id);
-        let oldFps = MonitorFps.has(id) ?  MonitorFps.get(id) : input;
-        let delta = fps - oldFps;
-        let avg = oldFps + A * delta;
-        let isCalm = Math.abs(delta / input) < TOLERANCE;
-        MonitorFps.set(id, avg);
-        monitorFails = 0;
-        if (isCalm) {
-          /* Added camera has stable FPS -> iteration is complete */
-          if (isCurrentCam && processorUsage.length > CPU_MIN_SAMPLES) {
-            const camsCount = GrabberFps.size;
-            const usage = medianWin(processorUsage);
-            const specificUsage = usage / camsCount;
-            const n = Math.floor(Math.max(0, (CPU_THRESHOLD - usage)) / specificUsage) + 1;
-            stderr(`=${camsCount}\t${processorUsageString()}\t`);
-            processorUsage = [];
-            /* Add next batch of cameras */ 
-            addCams(n);
-          }
-          if (!hasFullFps(id)) {
-            teardown();
+        ex.attempt.addFps(id, fps);
+        if (ex.attempt.isCalm(id)) {
+          if (ex.attempt.hasEnoughCpu()) {
+            if (!ex.attempt.hasFullFps(id)) {
+              teardown();
+            }
+            /* Added camera has stable FPS -> iteration is complete */
+            else if(isCurrentCam) {
+              const camsCount = ex.attempt.count;
+              const n = ex.attempt.camsQuota;
+
+              stderr(`=${ex.attempt.count}\t${processorUsageString()}\t`);
+              ex.attempt.clearCpu();
+              /* Add next batch of cameras */ 
+              addCams(n);
+            }
           }
         }
       } else if (isCurrentCam) {
-        monitorFails += 1;
-        if ((monitorFails % MAX_MONITOR_FAILS / STAT_INTERVAL) === 0) {
+        ex.attempt.monitorFails += 1;
+        if ((ex.attempt.monitorFails % (MAX_MONITOR_FAILS / STAT_INTERVAL)) === 0) {
           video.startVideo(id, MONITOR);
         }
-        if (monitorFails > MAX_MONITOR_FAILS) {
-          tryNum -= 1;
-          teardown(`\nNo fps received in ${monitorFails} reports\n`); 
+        if (ex.attempt.monitorFails > MAX_MONITOR_FAILS) {
+          teardown(`\nNo fps received in ${ex.attempt.monitorFails} reports\n`); 
         }
       }
     }
@@ -243,79 +430,52 @@ function runTest() {
         .then((items) => {
           const usage = items.filter((u) => u.Name === '_Total')
             .map((u) => (100 - u.PercentIdleTime));
-          processorUsage.push(parseFloat(usage)); 
-        });
+          ex.attempt.addCpu(usage); 
+        })
+        .catch((items, error) => stderr(`\n${error}\n`));
     }
   });
   video.setupMonitor(MONITOR);
 }
 
 function teardown(err) {
-  const max = MonitorFps.size;
   const testTime = timing.elapsedString('test');
 
-  MonitorFps.clear();
-  GrabberFps.clear();
+  ex.dropCount();
   video.offstats();
   if (err) {
-    tryNum -= 1;
+    streamIdx -= 1;
+    ex.invalidAtmp();
     stderr(err);
-    startCount = Math.ceil((max || 1) * DROP_RATIO);
     initTest();
     return;
   }
   /* Re-run test to get enough validation points */
-  if (tryNum < VALIDATE_COUNT) {
-    const testTime = timing.elapsedString('test');
-    const usage = medianWin(processorUsage);
-    const specificUsage = usage / max;
-    const dropCount =  Math.ceil(CPU_THRESHOLD / specificUsage);
-    stderr(`\nMax: ${max}, finished in ${testTime}\n`);
-    maxCounts.push(max);
-    startCount = dropCount;
-    tryNum += 1;
+  stderr(`\nMax: ${ex.attempt.count}, finished in ${testTime}\n`);
+  if (ex.isPending) {
     initTest();
   } else {
-    const streamTime = timing.elapsedString('stream');
-    stdout(`\t${medianWin(maxCounts)}\t${streamTime}\n`);
+    ex.elapsed = timing.elapsedString('stream');
+    stdout(report(ex));
     stderr(`\n${progressTime()} ${streamIdx}/${streams.length}\n`);
     bootstrap();
   }
   return;
 }
 
-function hasFullFps(id) {
-  let ratio = 1.0;
-
-  let input = GrabberFps.get(id);
-  let output = MonitorFps.get(id);
-  if (!!input && !!output) {
-    ratio = output / input;
-    if (FPS_THRESHOLD > ratio) {
-      return false;
-    }
-  }
-  return true;
-}
-
 function* genRTSP(options) {
   let id = 0;
   while (true) {
     id += 1;
-    video.setupIpCam(id, stream);
+    video.setupIpCam(id, ex.stream);
     yield id;
   }
 }
 
 function processorUsageString() {
-  let median = medianWin(processorUsage); 
-  let min = Math.min.apply(null, processorUsage);
-  let max = Math.max.apply(null, processorUsage);
-  // let arith = aMean(processorUsage).toFixed(2);
-  // let geom = gMean(processorUsage).toFixed(2);
-  //return `min: ${min}, max: ${max}, arithmetic: ${arith}, geometric: ${geom}, median ${median}`;
-  return `${min}%…${median}%…${max}%`;
-}
+  const min = ex.attempt.cpu.min;
+  const mean = ex.attempt.cpu.mean;
+  const max = ex.attempt.cpu.max;
 
 function formatUri(uri) {
   const locationRe = /location=([^`]+).+?!/;
