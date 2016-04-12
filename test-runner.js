@@ -551,9 +551,6 @@ function aMean(arr) {
   const sum = arr.reduce((sum, val) => sum += val, 0);
   return sum / arr.length;
 }
-function gMean(arr) {
-  const product = arr.reduce((p, val) => p *= val > 0 ? val : 1, 1);
-  return Math.pow(product, 1 / arr.length);
 
 function stdDev(samples) {
   const mean = aMean(samples);
