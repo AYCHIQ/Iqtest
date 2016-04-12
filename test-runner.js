@@ -554,6 +554,13 @@ function aMean(arr) {
 function gMean(arr) {
   const product = arr.reduce((p, val) => p *= val > 0 ? val : 1, 1);
   return Math.pow(product, 1 / arr.length);
+
+function stdDev(samples) {
+  const mean = aMean(samples);
+  const deviation = samples.map((val) => Math.pow(val - mean, 2));
+  const variance = aMean(deviation);
+  const sd = Math.sqrt(variance);
+  return sd;
 }
 
 function medianWin(arr) {
