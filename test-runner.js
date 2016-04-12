@@ -26,7 +26,6 @@ const TOLERANCE = nconf.get('tolerance');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
 const CPU_MIN_SAMPLES = nconf.get('cpu-samples');
 const FPS_THRESHOLD = nconf.get('fps-threshold');
-const A = nconf.get('alpha');
 const stopOnExit = nconf.get('stop');
 const INIT_COUNT = nconf.get('cams');
 const VALIDATE_COUNT = nconf.get('validate');
