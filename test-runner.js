@@ -597,6 +597,6 @@ function stdout(m) {
 function stderr(m) {
   process.stderr.write(m);
 }
-function logError (e) {
-  console.error(e);
+function logError() {
+  console.error(arguments);
 };
