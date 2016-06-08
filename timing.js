@@ -26,7 +26,7 @@ class Timing {
     return `${hrs}:${min}:${sec}`;
   }
   toDoubleDigit(x) {
-    return `00${x.toFixed(0)}`.slice(-2);
+    return `00${Math.trunc(x)}`.slice(-2);
   }
 }
 module.exports = new Timing();
