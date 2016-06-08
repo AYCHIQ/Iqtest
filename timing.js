@@ -10,6 +10,9 @@ class Timing {
   init(key) {
     this.time.set(key, Date.now());
   }
+  remove(key) {
+    this.time.delete(key);
+  }
   elapsed(key) {
     return Date.now() - this.time.get(key);
   }
