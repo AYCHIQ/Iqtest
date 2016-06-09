@@ -61,9 +61,9 @@ const streams = [];
  * @method addFps -- add FPS sample
  * @property {boolean} hasEnoughFps -- whether we have enough FPS samples
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
+ * @property {boolean} isCalm -- whether system metrics have stabilised
  * @method addCpu -- add CPU sample
  * @method clearCpu -- clear CPU samples 
- * @method isCalm -- check that system metrics has stabilised
  */
 class Attempt {
   constructor(options) {
@@ -122,9 +122,9 @@ class Attempt {
   get hasEnoughCpu() {
     return this.cpuSamples.length === this.options.cpuLen;
   }
-  isCalm(id) {
     const input = this.grabberFps.get(id);
     const samples = this.monitorFps.get(id);
+  get isCalm() {
 
     return this.hasEnoughFps(id) && (stdDev(samples) / input) < this.options.tolerance;
   }
