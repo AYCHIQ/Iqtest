@@ -219,7 +219,6 @@ class Attempt {
           video.setupIpCam(id, ex.stream);
           video.showCam(id, this.options.monitorId);
           this.monitorFps.set(id, []);
-          this.grabberFps.set(id, []);
           this.camId = id;
         }
         this.clearCpu();
@@ -230,7 +229,6 @@ class Attempt {
           video.hideCam(id, this.options.monitorId);
           video.removeIpCam(id);
           this.monitorFps.delete(id);
-          this.grabberFps.delete(id);
           this.camId = id - 1;
         }
         this.clearCpu();
@@ -243,7 +241,6 @@ class Attempt {
         break;
     }
     /** Reset calm metrics */
-    this.grabberFps.forEach(resetSample);
     this.monitorFps.forEach(resetSample);
     this.lastDev = Infinity;
     this.calmFails = 0;

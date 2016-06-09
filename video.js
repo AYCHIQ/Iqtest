@@ -8,7 +8,7 @@ const GRABPARAMS = {
   brand: '',
   chan: 0,
   codec: '',
-  drives: 'D:\\',
+  drives: '',
   flags: '',
   format: 'PAL',
   int_obj_id: 1,
@@ -228,7 +228,7 @@ module.exports = {
       action: 'REMOVE_ALL',
     });
   },
-  setupIpCam(id, address) {
+  setupIpCam(id, address, opts) {
     const name = `Cam ${id}`;
     video.sendReact({
       type: 'GRABBER',
@@ -240,7 +240,7 @@ module.exports = {
         parent_id: this.host,
         name,
         objname: name,
-      })
+      }, opts)
     });
     video.sendReact({
       type: 'CAM',
