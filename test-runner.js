@@ -59,10 +59,10 @@ const streams = [];
  * @property {number} fps -- mean input FPS
  * @property {number} camsQuota -- number of cameras we can safely add
  * @method addFps -- add FPS sample
+ * @property {boolean} hasEnoughFps -- whether we have enough FPS samples
+ * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
  * @method addCpu -- add CPU sample
  * @method clearCpu -- clear CPU samples 
- * @method hasEnoughFps -- check readiness by FPS samples
- * @method hasEnoughCpu -- check readiness by CPU samples
  * @method isCalm -- check that system metrics has stabilised
  */
 class Attempt {
@@ -116,10 +116,10 @@ class Attempt {
    * @param {number} id -- camera Id
    * @return {boolean}
    */
-  hasEnoughFps(id) {
     return this.monitorFps.get(id).length === this.options.fpsLen;
+  get hasEnoughFps() {
   }
-  hasEnoughCpu() {
+  get hasEnoughCpu() {
     return this.cpuSamples.length === this.options.cpuLen;
   }
   isCalm(id) {
