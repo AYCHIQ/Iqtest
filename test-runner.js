@@ -24,6 +24,7 @@ const STAT_INTERVAL = nconf.get('interval');
 const STAT_TIMEOUT = STAT_INTERVAL * 10 * 1000;
 const TOLERANCE = nconf.get('tolerance');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
+const CPU_READY = nconf.get('cpu-ready-threshold');
 const CPU_SAMPLES = nconf.get('cpu-samples');
 const FPS_THRESHOLD = nconf.get('fps-threshold');
 const FPS_SAMPLES = nconf.get('fps-samples');
@@ -348,7 +349,7 @@ function bootstrap() {
   }
 }
 
-video.onconnect(() => runTest());
+video.onconnect(() => warmUp());
 
 function initTest () {
   ex.newAttempt();
@@ -364,10 +365,57 @@ function resetTimer () {
     teardown('Statistics timeout');
   }, STAT_TIMEOUT);
 }
+/**
+ * Make sure system is ready
+ * @returns
+ */
+function chkSysReady() {
+  return new Promise((resolve, reject) => {
+    const cpuCheck = () => fetchCPU().then(cpu => {
+      if (cpu < CPU_READY) {
+        stderr('\nCPU OK\t');
+        resolve();
+      } else {
+        setTimeout(cpuCheck, 1000);
+      }
+    });
+    cpuCheck();
+  });
+}
+
+/**
+ * Capture input stream FPS
+ * @returns
+ */
+function captureFps() {
+  const testCamId = 1;
+  video.setupIpCam(testCamId, ex.stream);
+  return new Promise((resolve, reject) => {
+    video.onstats((msg) => {
+      if (ex.attempt.fpsIn === 0 && /GRABBER.*Receive/.test(msg.id)) {
+        const id = /\d+/.exec(msg.id)[0];
+        const fps = parseFloat(msg.params.fps);
+
+        //ex.attempt.addInFps(id, fps);
+        ex.attempt.fpsIn = fps;
+      }
+      if (ex.attempt.fpsIn !== 0) {
+        video.offstats();
+        video.removeIpCam(testCamId);
+        stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}\n`);
+        resolve();
+      }
+    });
+  });
+}
+
+function warmUp() {
+  chkSysReady().then(captureFps).then(runTest);
+}
 
 function runTest() {
   /**
-   * Commence Test
+   * Commence Test, when we are ready
    */
   const options = {
     host: HOST,
