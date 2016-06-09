@@ -51,14 +51,12 @@ const streams = [];
  * @class
  * @param {object} options -- attempt options
  * @property {map} monitorFps -- FPS displayed in monitor
- * @property {map} grabberFps -- FPS received from driver
+ * @property {number} fpsIn -- calculated input FPS
  * @property {array} cpuSamples -- last CPU usage samples
  * @property {number} monitorFails -- number of time we suspected failure
  * @property {number} count -- number of added cameras
  * @property {object} cpu -- returns min, mean, max CPU usage
- * @property {number} fps -- mean input FPS
  * @property {number} camsQuota -- number of cameras we can safely add
- * @method addFps -- add FPS sample
  * @property {number} lastDev -- recent deviation value 
  * @property {boolean} hasEnoughFps -- whether we have enough FPS samples
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
@@ -70,7 +68,6 @@ class Attempt {
   constructor(options) {
     this.options = options;
     this.monitorFps = new Map();
-    this.grabberFps = new Map();
     this.cpuSamples = [];
     this.monitorFails = 0;
     this.lastDev = Infinity;
@@ -111,8 +108,18 @@ class Attempt {
       max: Math.max.apply(null, this.cpuSamples),
     }
   }
-  get fps() {
-    return aMean(Array.from(this.grabberFps).map(kv => kv[1]));
+  get fpsIn() {
+    return this.fps;
+  }
+  set fpsIn(fps) {
+    if (fps > 0) {
+      this.streamFps.push(fps);
+      this.streamFps = this.streamFps.slice(-this.options.fpsLen);
+      if (this.streamFps.length === this.options.fpsLen &&
+          stdDev(this.streamFps) < this.options.fpsTolerance) {
+        this.fps = mean(this.streamFps);
+      }
+    }
   }
   /**
    * @param {number} id -- camera Id
