@@ -213,6 +213,21 @@ module.exports = {
       action: 'ACTIVATE',
     });
   },
+  deleteMonitor(id) {
+    this.clearMonitor(id);
+    video.sendReact({
+      type: 'MONITOR',
+      id,
+      action: 'DEACTIVATE',
+    });
+  },
+  clearMonitor(id) {
+    video.sendReact({
+      type: 'MONITOR',
+      id,
+      action: 'REMOVE_ALL',
+    });
+  },
   setupIpCam(id, address) {
     const name = `Cam ${id}`;
     video.sendReact({
@@ -238,12 +253,17 @@ module.exports = {
         objname: name,
       })
     });
-  },
-  clearMonitor(id) {
     video.sendReact({
-      type: 'MONITOR',
+      type: 'CAM',
       id,
-      action: 'REMOVE_ALL',
+      action: 'REC',
+    });
+  },
+  removeIpCam(id) {
+    video.sendReact({
+      type: 'GRABBER',
+      id,
+      action: 'DELETE',
     });
   },
   showCam(cam, id) {
@@ -251,6 +271,18 @@ module.exports = {
       type: 'MONITOR',
       id,
       action: 'ADD_SHOW',
+      params: {
+        cam,
+        slave_id: this.host,
+  //       stream_id: cam + '.1',
+      }
+    });
+  },
+  hideCam(cam, id) {
+    video.sendReact({
+      type: 'MONITOR',
+      id,
+      action: 'REMOVE',
       params: {
         cam,
         slave_id: this.host,
