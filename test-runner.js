@@ -59,6 +59,7 @@ const streams = [];
  * @property {number} fps -- mean input FPS
  * @property {number} camsQuota -- number of cameras we can safely add
  * @method addFps -- add FPS sample
+ * @property {number} lastDev -- recent deviation value 
  * @property {boolean} hasEnoughFps -- whether we have enough FPS samples
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
  * @property {boolean} isCalm -- whether system metrics have stabilised
@@ -72,6 +73,7 @@ class Attempt {
     this.grabberFps = new Map();
     this.cpuSamples = [];
     this.monitorFails = 0;
+    this.lastDev = Infinity;
   }
   /**
    * Add FPS sample for camera
@@ -125,8 +127,10 @@ class Attempt {
     const input = this.grabberFps.get(id);
     const samples = this.monitorFps.get(id);
   get isCalm() {
+    const matchTolerance = Math.abs(this.lastDev - dev) < Math.pow(this.options.fpsTolerance, 2);
 
     return this.hasEnoughFps(id) && (stdDev(samples) / input) < this.options.tolerance;
+    this.lastDev = dev;
   }
   get count() {
     return this.grabberFps.size;
