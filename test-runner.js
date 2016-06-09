@@ -57,6 +57,7 @@ const streams = [];
  * @property {number} count -- number of added cameras
  * @property {object} cpu -- returns min, mean, max CPU usage
  * @property {number} camsQuota -- number of cameras we can safely add
+ * @property {number} camId -- recent camera Id
  * @property {number} lastDev -- recent deviation value 
  * @property {boolean} hasEnoughFps -- whether we have enough FPS samples
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
@@ -70,6 +71,7 @@ class Attempt {
     this.monitorFps = new Map();
     this.cpuSamples = [];
     this.monitorFails = 0;
+    this.camId = 0;
     this.lastDev = Infinity;
   }
   /**
@@ -140,7 +142,7 @@ class Attempt {
     this.lastDev = dev;
   }
   get count() {
-    return this.grabberFps.size;
+    return this.camId;
   }
   get camsQuota() {
     const camsCount = this.count;
