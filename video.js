@@ -8,7 +8,7 @@ const GRABPARAMS = {
   brand: '',
   chan: 0,
   codec: '',
-  drives: '',
+  drives: 'D:\\',
   flags: '',
   format: 'PAL',
   int_obj_id: 1,
