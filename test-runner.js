@@ -69,7 +69,6 @@ const streams = [];
  *                                  and should ignore CPU usage
  * @property {boolean} hasEnoughFps -- whether we have enough FPS samples
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
- * @property {boolean} hasEnoughCpuHless -- whether we have enough headless CPU usage samples
  * @property {boolean} isCalm -- whether system metrics have stabilised
  * @property {boolean} hasFullFps -- calculate whether system renders all frames it receives
  * @member {array} streamFps -- FPS series of input video stream
@@ -88,7 +87,6 @@ class Attempt {
     this.streamFps = [];
     this.fps = 0;
     this.cpuSamples = [];
-    this.cpuHeadlessSamples = [];
     this.monitorFails = 0;
     this.calmFails = 0;
     this.camId = 0;
@@ -173,13 +171,6 @@ class Attempt {
   get hasEnoughCpu() {
     return this.cpuSamples.length === this.options.cpuLen;
   }
-  get hasEnoughCpuHless() {
-    return this.cpuHeadlessSamples.length === this.options.cpuLen;
-  }
-  get isCalmCpuHless() {
-    return this.hasEnoughCpuHless
-      && stdDev(this.cpuHeadlessSamples) < this.options.cpuTolerance;
-  }
   get isCalm() {
     const allFpsOut = this.fpsOut();
     const allHaveEnoughFps = allFpsOut.length === (this.monitorFps.size * this.options.fpsLen);
@@ -245,7 +236,7 @@ class Attempt {
         this.clearCpu();
         break;
       case 0:
-        headless();
+        teardown();
         return;
         break;
       default:
@@ -369,9 +360,6 @@ class Experiment {
   get cpu() {
     return mean(this.attempts.map(a => a.cpu.mean));
   }
-  get cpuHeadless() {
-    return mean(this.attempts.map(a => a.cpuHeadless));
-  }
   get fps() {
     return mean(this.attempts.map(a => a.fpsIn));
   }
@@ -456,7 +444,7 @@ new Promise ((resolve, reject) => {
       stdout(`FPS samples\t${FPS_SAMPLES}\n`);
       stdout(`FPS threshold\t${FPS_THRESHOLD}\n`);
       stdout(`FPS tolerance\t${FPS_TOLERANCE}\n`);
-      stdout(`Vendor\tFormat\tWidth\tHeight\tFPS\tFPS(input)\tMax.cameras\tσ\tCPU\tCPU(h/l)\tScore\tStart time\tElapsed time\n`);
+      stdout(`Vendor\tFormat\tWidth\tHeight\tFPS\tFPS(input)\tMax.cameras\tσ\tCPU\tScore\tStart time\tElapsed time\n`);
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
     })
@@ -663,23 +651,6 @@ function fetchCPU() {
   .catch((items, error) => stderr(`\nFailed to fetch CPU usage\n`));
 };
 
-function headless() {
-  const collectCPU = () => fetchCPU().then(cpu => {
-    ex.attempt.addCpuHless(cpu);
-    if (ex.attempt.isCalmCpuHless) {
-      stderr(`${ex.attempt.cpuHeadless}\n`);
-      teardown();
-    } else {
-      setTimeout(collectCPU, STAT_INTERVAL * 1000);
-    }
-  });
-  stderr(`\n\nCPU usage: ${processorUsageString()}\n`);
-  stderr(`CPU (h/l) usage: `);
-  video.offstats();
-  video.deleteMonitor(MONITOR);
-  collectCPU();
-}
-
 function teardown(err) {
   const testTime = timing.elapsedString('test');
 
@@ -765,7 +736,6 @@ function report(e) {
   const height = s.height;
   const sfps = s.fps;
   const cpu = e.cpu.toFixed(2);
-  const cpuHless = e.cpuHeadless.toFixed(2);
   const fps = (e.fps / e.options.interval).toFixed(2);
   const cams = e.cams;
   const sigma = e.camsDispersion.toFixed(2);
@@ -774,7 +744,7 @@ function report(e) {
   const elapsed = e.elapsed;
 
   return `${vendor}\t${format}\t${width}\t${height}\t` +
-    `${sfps}\t${fps}\t${cams}\t${sigma}\t${cpu}\t${cpuHless}\t` +
+    `${sfps}\t${fps}\t${cams}\t${sigma}\t${cpu}\t` +
     `${score}\t${start}\t${elapsed}\n`;
 }
 
