@@ -607,24 +607,7 @@ function runTest() {
       }
     }
   });
-  /** Handle video failure */
   video.onstats((msg) => {
-    if (/CAM.*OUT/.test(msg.id)) {
-      const id = /\[CAM]\[(\d+)]/.exec(msg.id)[1];
-      const count = parseInt(msg.params.count);
-      const isCurrentCam = id === ex.attempt.camId.toString();
-
-      if (count === 0 && isCurrentCam) {
-        ex.attempt.monitorFails += 1;
-        if ((ex.attempt.monitorFails % (ex.options.maxFails / STAT_INTERVAL)) === 0) {
-          video.startVideo(id, MONITOR);
-        }
-        if (ex.attempt.monitorFails > ex.options.maxFails) {
-          teardown(`\nNo fps received in ${ex.attempt.monitorFails} reports\n`); 
-        }
-      }
-    }
-  });
   video.onstats((msg) => {
     if (/CAM.*OUT/.test(msg.id)) {
       const id = /\[CAM]\[(\d+)]/.exec(msg.id)[1];
