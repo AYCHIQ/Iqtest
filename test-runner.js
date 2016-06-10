@@ -23,7 +23,6 @@ const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
 const STAT_TIMEOUT = STAT_INTERVAL * 10 * 1000;
 const FPS_TOLERANCE = nconf.get('fps-tolerance');
-const CPU_TOLERANCE = nconf.get('cpu-tolerance');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
 const CPU_READY = nconf.get('cpu-ready-threshold');
 const CPU_SAMPLES = nconf.get('cpu-samples');
@@ -437,7 +436,6 @@ new Promise ((resolve, reject) => {
       stdout(`Attempts\t${VALIDATE_COUNT}\n`);
       stdout(`Stat. interval\t${STAT_INTERVAL}\n`);
       stdout(`CPU usage samples\t${CPU_SAMPLES}\n`);
-      stdout(`CPU tolerance\t${CPU_TOLERANCE}\n`);
       stdout(`FPS samples\t${FPS_SAMPLES}\n`);
       stdout(`FPS threshold\t${FPS_THRESHOLD}\n`);
       stdout(`FPS tolerance\t${FPS_TOLERANCE}\n`);
@@ -458,7 +456,6 @@ function bootstrap() {
     fpsLen: FPS_SAMPLES,
     cpuLen: CPU_SAMPLES,
     fpsTolerance: FPS_TOLERANCE,
-    cpuTolerance: CPU_TOLERANCE,
     dropRatio: DROP_RATIO,
     fpsThreshold: FPS_THRESHOLD,
     cpuThreshold: CPU_THRESHOLD,
