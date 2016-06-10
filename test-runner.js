@@ -466,6 +466,7 @@ function bootstrap() {
     cam: {
       drives: 'D:\\',
     },
+    metricRe: /CAM.*OUT/,
   });
   ex.stream = streams[streamIdx];
   streamIdx += 1;
@@ -560,9 +561,9 @@ function runTest() {
   ex.attempt.targetCams(ex.startCount);
 
   video.onstats((msg) => {
-    if (/CAM.*OUT/.test(msg.id)) {
-      const id = /\[CAM]\[(\d+)]/.exec(msg.id)[1];
-      const fps = parseInt(msg.params.count);
+    if (ex.options.metricRe.test(msg.id)) {
+      const id = /\[(\d+)]/.exec(msg.id)[1];
+      const fps = parseInt(msg.params.fps);
       const isCurrentCam = id === ex.attempt.camId.toString();
 
       if (fps === 0) {
@@ -608,9 +609,8 @@ function runTest() {
     }
   });
   video.onstats((msg) => {
-  video.onstats((msg) => {
-    if (/CAM.*OUT/.test(msg.id)) {
-      const id = /\[CAM]\[(\d+)]/.exec(msg.id)[1];
+    if (ex.options.metricRe.test(msg.id)) {
+      const id = /\[(\d+)]/.exec(msg.id)[1];
       const isCurrentCam = id === ex.attempt.camId.toString();
 
       /* Fetch processor usage */
