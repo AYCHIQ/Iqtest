@@ -800,7 +800,7 @@ function devFrom(ref) {
  * @returns {string} id
  */
 function getId(msgId) {
-  return /([0-9]+)[^0-9]*$/.msgId[1];
+  return /([0-9]+)[^0-9]*$/.exec(msgId)[1];
 }
 
 /**
