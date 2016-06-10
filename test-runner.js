@@ -215,7 +215,7 @@ class Attempt {
       case 1:
         stderr('+');
         for (id += 1; id <= target; id += 1) {
-          video.setupIpCam(id, ex.stream);
+          video.setupIpCam(id, ex.stream, ex.options.cam);
           video.showCam(id, this.options.monitorId);
           this.monitorFps.set(id, []);
           this.camId = id;
@@ -463,6 +463,9 @@ function bootstrap() {
     maxFails: MAX_MONITOR_FAILS,
     monitorId: MONITOR,
     interval: STAT_INTERVAL,
+    cam: {
+      drives: 'D:\\',
+    },
   });
   ex.stream = streams[streamIdx];
   streamIdx += 1;
