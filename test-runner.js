@@ -536,7 +536,6 @@ function captureFps() {
         const id = /\d+/.exec(msg.id)[0];
         const fps = parseFloat(msg.params.fps);
 
-        //ex.attempt.addInFps(id, fps);
         ex.attempt.fpsIn = fps;
       }
       if (ex.attempt.fpsIn !== 0) {
@@ -582,12 +581,6 @@ function runTest() {
           else if (ex.attempt.hasFullFps) {
             let n = ex.attempt.camsQuota;
 
-            // /**
-            //  * but not more than previous maximum
-            //  */
-            // if (ex.maxCount) {
-            //   n = Math.min(ex.maxCount, n);
-            // }
             stderr('E');
             ex.attempt.targetCams(n);
           } 
