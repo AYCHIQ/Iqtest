@@ -533,7 +533,7 @@ function captureFps() {
   return new Promise((resolve, reject) => {
     video.onstats((msg) => {
       if (ex.attempt.fpsIn === 0 && /GRABBER.*Receive/.test(msg.id)) {
-        const id = /\d+/.exec(msg.id)[0];
+        const id = getId(msg.id);
         const fps = parseFloat(msg.params.fps);
 
         ex.attempt.fpsIn = fps;
@@ -561,8 +561,8 @@ function runTest() {
 
   video.onstats((msg) => {
     if (ex.options.metricRe.test(msg.id)) {
-      const id = /\[(\d+)]/.exec(msg.id)[1];
-      const fps = parseInt(msg.params.fps);
+      const id = getId(msg.id);
+      const fps = parseFloat(msg.params.fps);
       const isCurrentCam = id === ex.attempt.camId.toString();
 
       if (fps === 0) {
@@ -603,7 +603,7 @@ function runTest() {
   });
   video.onstats((msg) => {
     if (ex.options.metricRe.test(msg.id)) {
-      const id = /\[(\d+)]/.exec(msg.id)[1];
+      const id = getId(msg.id);
       const isCurrentCam = id === ex.attempt.camId.toString();
 
       /* Fetch processor usage */
@@ -792,6 +792,15 @@ function stdDev(samples) {
  */
 function devFrom(ref) {
   return (val, idx) => Math.abs(1 - val / ref);
+}
+
+/**
+ * Extract id from message id string
+ * @param {string} msgId -- message id string (e.g. [MONITOR][1][CAM][10][OUT])
+ * @returns {string} id
+ */
+function getId(msgId) {
+  return /([0-9]+)[^0-9]*$/.msgId[1];
 }
 
 /**
