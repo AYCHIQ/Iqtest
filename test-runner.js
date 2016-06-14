@@ -147,9 +147,10 @@ class Attempt {
     if (fps > 0) {
       this.streamFps.push(fps);
       this.streamFps = this.streamFps.slice(-this.options.fpsLen);
+//stderr(` [ ${mad(this.streamFps)} ]`);
       if (this.streamFps.length === this.options.fpsLen &&
-          stdDev(this.streamFps) < this.options.fpsTolerance) {
-        this.fps = mean(this.streamFps);
+          mad(this.streamFps) < this.options.fpsTolerance) {
+        this.fps = Math.round(median(this.streamFps));
       }
     }
   }
