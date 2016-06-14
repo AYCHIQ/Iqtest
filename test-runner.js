@@ -29,6 +29,7 @@ const CPU_SAMPLES = nconf.get('cpu-samples');
 const FPS_THRESHOLD = nconf.get('fps-threshold');
 const FPS_SAMPLES = nconf.get('fps-samples');
 const stopOnExit = nconf.get('stop');
+const REC_PATH = nconf.get('rec');
 const INIT_COUNT = nconf.get('cams');
 const VALIDATE_COUNT = nconf.get('validate');
 const DROP_RATIO = 1 - nconf.get('drop');
@@ -464,7 +465,7 @@ function bootstrap() {
     monitorId: MONITOR,
     interval: STAT_INTERVAL,
     cam: {
-      drives: 'D:\\',
+      drives: REC_PATH,
     },
     metricRe: /CAM.*OUT/,
   });
