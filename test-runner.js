@@ -196,8 +196,9 @@ class Attempt {
     const specificUsage = usage / camsCount;
     const estimated = cpuThreshold / specificUsage;
     const diff = estimated - this.camId;
+    let quota = camsCount + Math.round(Math.log(Math.pow(diff, 5)));
 
-    return this.count + Math.round(sigmoid(diff, estimated)) + 1;
+    return quota;
   }
   get hasFullFps() {
     const allFpsOut = Array.from(this.monitorFps).map(kv => mean(kv[1]));
