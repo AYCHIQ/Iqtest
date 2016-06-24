@@ -300,7 +300,7 @@ class Attempt {
         break;
       case -1:
         stderr('-');
-        for (id; id >= (target + 1) && id > 1; id -= 1) {
+        for (id; id > target && id > 1; id -= 1) {
           video.hideCam(id, this.options.monitorId);
           video.removeIpCam(id);
           this.monitorFps.delete(id);
