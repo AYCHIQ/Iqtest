@@ -195,7 +195,7 @@ class Attempt {
     const cpuThreshold = this.options.cpuThreshold;
     const specificUsage = usage / camsCount;
     const estimated = cpuThreshold / specificUsage;
-    const diff = estimated - this.camId;
+    const diff = estimated - camsCount;
     let quota = camsCount + Math.round(Math.log(Math.pow(diff, 5)));
 
     return quota;
@@ -253,8 +253,6 @@ class Attempt {
     const ffLast = this.ffHistory[this.ffHistory.length - 1];
     let target = camHist3[camHist3.length - 1];
     let diff = camHist3.slice(-2).reduce((r, v) => Math.abs(r - v), 0);
-
-    this.ffHistory.push(ffNow);
 
     if (ffNow !== ffLast) {
       diff = Math.floor(diff / 2);
