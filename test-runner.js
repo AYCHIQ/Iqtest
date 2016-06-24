@@ -92,7 +92,7 @@ class Attempt {
     this.monitorFails = 0;
     this.calmFails = 0;
     this.camId = 0;
-    this.camHistory = [];
+    this.camHistory = [this.options.lastCount];
     this.ffHistory = [true];
     this.lastDev = Infinity;
     this.ignoreCPU = false;
@@ -324,7 +324,8 @@ class Experiment {
     this.maxCount = null;
   }
   newAttempt() {
-    this.attempts.push(new Attempt(this.options, this.maxCount));
+    this.options.lastCount = this.attempt ? this.attempt.count : 0;
+    this.attempts.push(new Attempt(this.options));
   }
   get attempt() {
     const last = this.attempts.length - 1;
