@@ -603,9 +603,7 @@ function initTest () {
 }
 function resetTimer () {
   clearTimeout(timer);
-  timer = setTimeout(() => {
-    teardown('Statistics timeout');
-  }, STAT_TIMEOUT);
+  timer = setTimeout(teardown, STAT_TIMEOUT, 'Statistics timeout');
 }
 /**
  * Make sure system is ready
