@@ -95,10 +95,7 @@ class Attempt {
     this.camHistory = [this.options.lastCount];
     this.ffHistory = [true];
     this.lastDev = Infinity;
-    this.ignoreCPU = false;
-    if (prevCount) {
-      this.camHistory.push(prevCount);
-    }
+    this.ignoreCPU = this.options.lastCount === 0 ? false : true;
   }
   /**
    * Add FPS sample for camera
