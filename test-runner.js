@@ -2,6 +2,8 @@
 const fs = require('fs');
 const uuid = require('uuid');
 const _ = require('lodash');
+const blessed = require('blessed');
+const contrib = require('blessed-contrib');
 const nconf = require('nconf');
 const iidk = require('./iidk');
 const video = require('./video');
@@ -51,6 +53,76 @@ const WS = {
 
 /* Global variables */
 const streams = [];
+
+/* UI */
+
+const screen = blessed.screen({
+  smartCSR: true,
+});
+const exInfo = blessed.box({
+  left: 0,
+  top: 1,
+  content: 'stream info',
+  width: '50%',
+  height: 4,
+  scrollable: 'alwaysScroll',
+  tags: true,
+  style: {
+    fg: 'green',
+  }
+});
+const progressBar = blessed.ProgressBar({
+  left: 0,
+  top: 0,
+  width: '100%',
+  height: 1,
+  pch: '▄',
+});
+const progressBox = blessed.box({
+  right: 0,
+  top: 1,
+  content: 'progress',
+  tags: true,
+  width: 40,
+  height: 4,
+});
+const attemptInfo = blessed.box({
+  left: 0,
+  top: 5,
+  tags: true,
+  width: 30,
+  height: 10, 
+});
+const line = contrib.line({
+  left: '40%+1',
+  top: '15%',
+  width: '60%-1',
+  height: '85%',
+  style: {
+    line: 'yellow',
+    text: 'green',
+    baseline: 'black'
+  },
+  label: 'Cameras',
+});
+const logBox = blessed.Log({
+  left: 0,
+  top: 17,
+  content: 'log',
+  width: '30%',
+  height: 'shrink',
+  scrollable: 'alwaysScroll',
+  tags: true,
+});
+screen.title = 'Intellect Platform Tester';
+screen.append(exInfo);
+screen.append(progressBar);
+screen.append(progressBox);
+screen.append(attemptInfo);
+screen.append(line);
+screen.append(logBox);
+screen.render();
+
 /**
  * @class
  * @param {object} options -- attempt options
@@ -507,6 +579,8 @@ function bootstrap() {
     stderr('Done!\n');
     process.exit();
   }
+  showExInfo();
+  showProgress();
 }
 
 video.onconnect(() => warmUp());
@@ -580,6 +654,7 @@ function runTest() {
    */
   video.setupMonitor(MONITOR);
   ex.attempt.targetCams(ex.startCount);
+  showExInfo(ex);
 
   video.onstats((msg) => {
     if (ex.options.metricRe.test(msg.id)) {
@@ -621,6 +696,7 @@ function runTest() {
           ex.attempt.seek(FAILED);
         }
       }
+      showAttemptInfo(ex.attempt);
     }
   });
   cpuTimer = setInterval(() => fetchCPU().then((cpu) => ex.attempt.addCpu(cpu)), CPU_INTERVAL);
@@ -875,17 +951,65 @@ function progressTime() {
   const rate = timing.elapsed('global') / doneStreams;
   const estimatedMs = (streams.length - doneStreams) * rate;
 
-  return `Elapsed time: ${timing.elapsedString('global')}, Estimated remaining time: ${timing.getTimeString(estimatedMs)}`;
+  return `Elapsed time:{|}${timing.elapsedString('global')}\n` +
+    `Remaining time:{|}${timing.getTimeString(estimatedMs)}\n` +
+    `Stream:{|} ${streamIdx}/${streams.length}`;
 }
 
 function stdout(m) {
-  process.stdout.write(m);
+  fileStream.write(m);
 }
 
 function stderr(m) {
-  process.stderr.write(m);
+  logBox.log(m);
+  screen.render();
+  //process.stderr.write(m);
 }
 
 function logError() {
-  console.error(arguments);
+  logBox.log(arguments);
+  screen.render();
 };
+function showExInfo(e) {
+  if (!e) {
+    exInfo.pushLine('');
+    return;
+  }
+  const s = e.streamAttr;
+  const counts = e.attempts.map(a => a.count);
+  
+  exInfo.popLine();
+  exInfo.pushLine(`${s.vendor} ${s.format} ${s.width}x${s.height}@${s.fps}fps{|}${counts}`);
+  screen.render();
+}
+function showAttemptInfo(a) {
+  const allFpsOut = a.fpsOut();
+  const deltaMedian = (median(allFpsOut.map(f => Math.abs(1 - f/a.fpsIn))) || 0);
+  const deltaMean = (mean(allFpsOut.map(f => Math.abs(1 - f/a.fpsIn))) || 0);
+  const dev = mad(allFpsOut || 0);
+
+
+  attemptInfo.setContent([
+      ['fps:', a.fpsIn.toFixed(2)].join('{|}'),
+      ['count:', a.count.toString()].join('{|}'),
+      ['mad:', (mad(allFpsOut) || 0).toFixed(3)].join('{|}'),
+      ['σ:', (stdDev(allFpsOut) || 0).toFixed(3)].join('{|}'),
+      ['tolerance:', a.options.fpsTolerance.toFixed(3)].join('{|}'),
+      ['Δmedian:', deltaMedian.toFixed(3)].join('{|}'),
+      ['Δmean:', deltaMean.toFixed(3)].join('{|}'),
+      ['Δthreshold:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
+      ['CPU:', processorUsageString()].join('{|}'),
+  ].join('\n'));
+
+  line.setData([{
+      title: 'num',
+      x: a.camHistory.map((v, i) => i),
+      y: a.camHistory,
+  }]);
+  screen.render();
+}
+function showProgress() {
+  progressBar.setProgress((streamIdx / streams.length) * 100);
+  progressBox.setContent(progressTime());
+  screen.render();
+}
