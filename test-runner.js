@@ -557,7 +557,7 @@ function captureFps() {
 }
 
 function warmUp() {
-  chkSysReady().then(captureFps).then(runTest);
+  chkSysReady().then(captureFps).then(runTest).catch(logError);
 }
 
 function runTest() {
