@@ -628,14 +628,18 @@ function captureFps() {
   const testCamId = 1;
   video.setupIpCam(testCamId, ex.stream);
   return new Promise((resolve, reject) => {
+    let timeoutId = setTimeout(teardown, STAT_TIMEOUT);
+
     video.onstats((msg) => {
       if (ex.attempt.fpsIn === 0 && /GRABBER.*Receive/.test(msg.id)) {
-        const id = getId(msg.id);
         const fps = parseFloat(msg.params.fps);
 
         ex.attempt.fpsIn = fps;
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(teardown, STAT_TIMEOUT);
       }
       if (ex.attempt.fpsIn !== 0) {
+        clearTimeout(timeoutId);
         video.offstats();
         video.removeIpCam(testCamId);
         stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}\n`);
