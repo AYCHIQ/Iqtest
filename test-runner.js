@@ -249,8 +249,9 @@ class Attempt {
   }
   seek(isOK = !FAILED) {
     const camHist3 = this.camHistory.slice(-3);
-    const ffNow = isOK ? this.hasFullFps : FAILED;
+    /* calling hasFullFps appends new value */
     const ffLast = this.ffHistory[this.ffHistory.length - 1];
+    const ffNow = isOK ? this.hasFullFps : FAILED;
     let target = camHist3[camHist3.length - 1];
     let diff = camHist3.slice(-2).reduce((r, v) => Math.abs(r - v), 0);
 
@@ -595,7 +596,7 @@ function runTest() {
            * We exceeded limit, and must seek to find it
            */
           else {
-            ex.attempt.seek();
+            ex.attempt.seek(FAILED);
           }
         }
         /**
