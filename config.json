@@ -1,20 +1,21 @@
 {
   "iidk": 0,
-  "interval": 1,
+  "interval": 6,
   "monitor": 1,
-  "monitor-fails": 60,
+  "monitor-fails": 10,
   "fps-tolerance": 0.05,
-  "fps-threshold": 1.00,
-  "cpu-tolerance": 19.0,
+  "fps-threshold": 1,
   "cpu-ready-threshold": 10,
   "cpu-threshold": 100,
-  "cpu-samples": 10,
-  "fps-samples": 10,
+  "cpu-samples": 5,
+  "cpu-interval": 2000,
+  "fps-samples": 5,
   "rec": "A:\\",
   "cams": 1,
+  "report-path": ".",
   "stop": true,
   "stream": "rtsp://poirot-host/compositor`name=mix`sink_1::alpha=0.5`!`vaapipostproc`scale=1`format=i420`!`vaapiencode_h264`rate-control=cbr`bitrate=1500`!`rtph264pay`name=pay0`pt=96`videotestsrc`pattern=ball`!`video/x-raw,framerate=30/1,width=640,height=480`!`timeoverlay`ypad=50`!`clockoverlay`!`queue2`!`mix.`videotestsrc`pattern=snow`!`video/x-raw,width=640,height=480`!`mix.",
   "stream-list": "",
   "validate": 3,
-  "drop": 0.2
+  "drop": 0.1
 }
