@@ -26,6 +26,7 @@ const FPS_TOLERANCE = nconf.get('fps-tolerance');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
 const CPU_READY = nconf.get('cpu-ready-threshold');
 const CPU_SAMPLES = nconf.get('cpu-samples');
+const CPU_INTERVAL = nconf.get('cpu-interval');
 const FPS_THRESHOLD = nconf.get('fps-threshold');
 const FPS_SAMPLES = nconf.get('fps-samples');
 const stopOnExit = nconf.get('stop');
@@ -603,6 +604,7 @@ function runTest() {
       }
     }
   });
+  cpuTimer = setInterval(() => fetchCPU().then((cpu) => ex.attempt.addCpu(cpu)), CPU_INTERVAL);
   video.onstats((msg) => {
     if (ex.options.metricRe.test(msg.id)) {
       const id = getId(msg.id);
