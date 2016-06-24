@@ -248,11 +248,10 @@ class Attempt {
   }
   seek(isOK = !FAILED) {
     const camHist3 = this.camHistory.slice(-3);
-    const camHist3dt = camHist3.map((v, i, a) => (isFinite(a[i - 1]) ? v - a[i - 1] : 0));
     const ffNow = isOK ? this.hasFullFps : FAILED;
     const ffLast = this.ffHistory[this.ffHistory.length - 1];
     let target = camHist3[camHist3.length - 1];
-    let diff = Math.abs(camHist3dt[camHist3dt.length - 1]);
+    let diff = camHist3.slice(-2).reduce((r, v) => Math.abs(r - v), 0);
 
     this.ffHistory.push(ffNow);
 
