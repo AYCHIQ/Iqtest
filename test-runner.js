@@ -461,6 +461,7 @@ class Experiment {
 }
 let streamIdx = 0;
 let timer = null;
+let cpuTimer = null;
 let ex = new Experiment();
 
 timing.init('global');
@@ -723,6 +724,7 @@ function fetchCPU() {
 function teardown(err) {
   const testTime = timing.elapsedString('test');
 
+  clearInterval(cpuTimer);
   ex.dropCount();
   video.offstats();
   if (err) {
