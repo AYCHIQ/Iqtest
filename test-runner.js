@@ -701,17 +701,6 @@ function runTest() {
     }
   });
   cpuTimer = setInterval(() => fetchCPU().then((cpu) => ex.attempt.addCpu(cpu)), CPU_INTERVAL);
-  video.onstats((msg) => {
-    if (ex.options.metricRe.test(msg.id)) {
-      const id = getId(msg.id);
-      const isCurrentCam = id === ex.attempt.camId.toString();
-
-      /* Fetch processor usage */
-      if (isCurrentCam) {
-        fetchCPU().then((cpu) => ex.attempt.addCpu(cpu));
-      }
-    }
-  });
 }
 
 function fetchCPU() {
