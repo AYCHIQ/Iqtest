@@ -323,9 +323,19 @@ class Experiment {
     this.options.lastCount = this.attempt ? this.attempt.count : 0;
     this.attempts.push(new Attempt(this.options));
   }
+  getAttempt(idx) {
+    const len = this.attempts.length;
+    if (idx < 0) {
+      idx += len;
+    }
+    if (idx >= 0 && idx <= len) {
+      return this.attempts[idx];
+    } else {
+      return undefined;
+    }
+  }
   get attempt() {
-    const last = this.attempts.length - 1;
-    return this.attempts[last];
+    return this.getAttempt(-1);
   }
   invalidAtmp() {
     this.attempts.pop();
