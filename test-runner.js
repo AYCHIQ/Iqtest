@@ -742,7 +742,6 @@ function teardown(err) {
   } else {
     ex.elapsed = timing.elapsedString('stream');
     stdout(report(ex));
-    stderr(`\n${progressTime()} ${streamIdx}/${streams.length}\n`);
     bootstrap();
   }
   return;
