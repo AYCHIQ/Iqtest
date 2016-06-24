@@ -271,6 +271,7 @@ class Attempt {
     const specificUsage = usage / camsCount;
     const estimated = cpuThreshold / specificUsage;
     const diff = estimated - camsCount;
+    
     let quota = camsCount + Math.round(Math.log(Math.pow(diff, 5)));
 
     return quota;
@@ -300,6 +301,9 @@ class Attempt {
         break;
       case -1:
         stderr('-');
+        if (target < 1) {
+          teardown('Stream failure');
+        }
         for (id; id > target && id > 1; id -= 1) {
           video.hideCam(id, this.options.monitorId);
           video.removeIpCam(id);
@@ -630,6 +634,7 @@ function chkSysReady() {
  */
 function captureFps() {
   const testCamId = 1;
+
   video.setupIpCam(testCamId, ex.stream);
   return new Promise((resolve, reject) => {
     let timeoutId = setTimeout(teardown, STAT_TIMEOUT);
