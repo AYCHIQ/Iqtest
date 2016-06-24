@@ -202,7 +202,7 @@ class Attempt {
    */
   get cpu() {
     const cmin = min(this.cpuSamples);
-    const cmean = mean(this.cpuSamples);
+    const cmean = median(this.cpuSamples);
     const cmax = max(this.cpuSamples);
 
     return {
@@ -221,7 +221,7 @@ class Attempt {
 //stderr(` [ ${mad(this.streamFps)} ]`);
       if (this.streamFps.length === this.options.fpsLen &&
           mad(this.streamFps) < this.options.fpsTolerance) {
-        this.fps = Math.round(median(this.streamFps));
+        this.fps = median(this.streamFps);
       }
     }
   }
@@ -246,8 +246,8 @@ class Attempt {
   get isCalm() {
     const allFpsOut = this.fpsOut();
     const allHaveEnoughFps = allFpsOut.length === (this.monitorFps.size * this.options.fpsLen);
-    const dev = stdDev(allFpsOut);
-    const matchTolerance = Math.abs(this.lastDev - dev) < Math.pow(this.options.fpsTolerance, 2);
+    const dev = mad(allFpsOut);
+    const matchTolerance = Math.abs(this.lastDev - dev) < Math.pow(this.options.fpsTolerance, 1);
 
 //stderr(` [ ${Math.abs(this.lastDev - dev).toFixed(2)} < ${Math.pow(this.options.fpsTolerance, 2)}] `);
     this.lastDev = dev;
@@ -273,8 +273,9 @@ class Attempt {
     return quota;
   }
   get hasFullFps() {
-    const allFpsOut = Array.from(this.monitorFps).map(kv => mean(kv[1]));
-    const delta = Math.trunc(max(allFpsOut.map(f => Math.abs(this.fpsIn - f))));
+    //const allFpsOut = Array.from(this.monitorFps).map(kv => mean(kv[1]));
+    const allFpsOut = this.fpsOut();
+    const delta = (median(allFpsOut.map(f => Math.abs(f - this.fpsIn))));
     const value = delta <= this.options.fpsThreshold;
 
 //stderr(` (${delta.toFixed(3)} < ${this.options.fpsThreshold}) `);
