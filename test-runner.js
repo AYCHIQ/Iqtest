@@ -32,6 +32,7 @@ const FPS_SAMPLES = nconf.get('fps-samples');
 const stopOnExit = nconf.get('stop');
 const REC_PATH = nconf.get('rec');
 const INIT_COUNT = nconf.get('cams');
+const REPORT_PATH = nconf.get('report-path');
 const VALIDATE_COUNT = nconf.get('validate');
 const DROP_RATIO = 1 - nconf.get('drop');
 const MAX_MONITOR_FAILS = nconf.get('monitor-fails');
@@ -431,6 +432,13 @@ new Promise ((resolve, reject) => {
   video.stats(STAT_INTERVAL);
   
   Promise.all([deferOSInfo, deferCPUInfo])
+    .then(() => {
+      const dateString = new Date().toISOString();
+      const path = REPORT_PATH + '/' + (processor + '_' + dateString + '.tsv').replace(/[^A-Za-z0-9-_.]/g, '_'); 
+      
+      fileStream = fs.createWriteStream(path);
+      return fileStream;
+    })
     .then(() => {
       stdout(`OS\t${osName}\n`);
       stdout(`CPU\t${processor}\n`);
