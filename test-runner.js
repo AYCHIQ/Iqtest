@@ -53,6 +53,7 @@ const WS = {
 
 /* Global variables */
 const streams = [];
+let fileStream;
 
 /* UI */
 
@@ -126,7 +127,6 @@ screen.render();
 /**
  * @class
  * @param {object} options -- attempt options
- * @param {number} prevCount -- cameras count known from previous attempts
  * @property {map} monitorFps -- FPS displayed in monitor
  * @property {number} fpsIn -- calculated input FPS
  * @property {array} cpuSamples -- last CPU usage samples
@@ -145,8 +145,8 @@ screen.render();
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
  * @property {boolean} isCalm -- whether system metrics have stabilised
  * @property {boolean} hasFullFps -- calculate whether system renders all frames it receives
- * @member {array} streamFps -- FPS series of input video stream
- * @member {number} fps -- input FPS calculated value
+ * @property {array} streamFps -- FPS series of input video stream
+ * @property {number} fps -- input FPS calculated value
  * @method addOutFps -- add camera FPS sample
  * @method addCpu -- add CPU sample
  * @method targetCams -- add/remove cameras to match target number
@@ -155,7 +155,7 @@ screen.render();
  * @method {number} fpsOut -- mean output FPS
  */
 class Attempt {
-  constructor(options, prevCount) {
+  constructor(options) {
     this.options = options;
     this.monitorFps = new Map();
     this.streamFps = [];
@@ -218,7 +218,10 @@ class Attempt {
     if (fps > 0) {
       this.streamFps.push(fps);
       this.streamFps = this.streamFps.slice(-this.options.fpsLen);
-//stderr(` [ ${mad(this.streamFps)} ]`);
+      /** Trace */
+      stderr('{cyan-fg}' + this.streamFps.map(f => f.toFixed(2)).join(' ') + '{/}');
+      stderr(`FPS: ${median(this.streamFps).toFixed(2)}\tMAD: ${mad(this.streamFps).toFixed(3)}`);
+      /** */
       if (this.streamFps.length === this.options.fpsLen &&
           mad(this.streamFps) < this.options.fpsTolerance) {
         this.fps = median(this.streamFps);
@@ -249,7 +252,7 @@ class Attempt {
     const dev = mad(allFpsOut);
     const matchTolerance = Math.abs(this.lastDev - dev) < Math.pow(this.options.fpsTolerance, 1);
 
-//stderr(` [ ${Math.abs(this.lastDev - dev).toFixed(2)} < ${Math.pow(this.options.fpsTolerance, 2)}] `);
+//stderr(` [ ${Math.abs(this.lastDev - dev).toFixed(2)} < ${Math.pow(this.options.fpsTolerance, 2).toFixed(2)}] `);
     this.lastDev = dev;
     if (allHaveEnoughFps && matchTolerance) {
       this.calmFails = 0;
@@ -278,15 +281,13 @@ class Attempt {
     const delta = (median(allFpsOut.map(f => Math.abs(f - this.fpsIn))));
     const value = delta <= this.options.fpsThreshold;
 
-//stderr(` (${delta.toFixed(3)} < ${this.options.fpsThreshold}) `);
+    this.ffHistory.push(value);
     return value;
   }
   targetCams(target) {
     let id = this.camId;
 
-    this.camHistory.push(target);
-    //stderr(`${processorUsageString()}`);
-    switch (Math.sign(target - id)) {
+    switch (Math.sign(target - this.count)) {
       case 1:
         stderr('+');
         for (id += 1; id <= target; id += 1) {
@@ -314,11 +315,12 @@ class Attempt {
       default:
         break;
     }
+    this.camHistory.push(target);
     /** Reset calm metrics */
     this.monitorFps.forEach(resetSample);
     this.lastDev = Infinity;
     this.calmFails = 0;
-    stderr(`=${this.camId}\t`);
+    stderr(`=${this.count}`);
   }
   seek(isOK = !FAILED) {
     const camHist3 = this.camHistory.slice(-3);
@@ -335,9 +337,9 @@ class Attempt {
      * If last failed and difference is zero, we still fail
      * and must reiterate 
      */
-    if (diff === 0 && ffNow === FAILED) {
-      diff += 1;
-    }
+    //if (diff === 0 && ffNow === FAILED) {
+    //  diff += 1;
+    //}
     this.ignoreCPU = true;
     target += ffNow ? diff : -diff;
 
@@ -363,6 +365,7 @@ class Attempt {
  * @property {number} fps -- mean FPS over Attempts
  * @property {boolean} isPending -- needs more Attempts to complete
  * @method newAttempt -- create new test Attempt
+ * @method getAttempt -- gets attempt by index
  * @method invalidAtmp -- remove last Attempt
  * @method dropCount -- calculate startCount according to dropRatio
  */
@@ -381,16 +384,18 @@ class Experiment {
      *                                   must be completed to finish Experiment
      * @member {number} maxFails -- maximum number of various fails
      * @member {number} monitorId -- Monitor Id used by test
-     * @member {number} maxCount -- known maximum (used to prevent overloading)
+     * @member {number} interval -- statistics interval
+     * @member {object} cam -- camera parameters
+     * @member {regexp} metricRe -- regexp to match stat parameter
+     * @member {number} lastCount -- number of cameras on last attempt
      */
-    this.options = options;
+    this.options = options || {};
     this.start = '';
     this.elapsed = '';
     this.streamUri = '';
     this._sattr = {};
     this.attempts = [];
     this.startCount = 1;
-    this.maxCount = null;
   }
   newAttempt() {
     this.options.lastCount = this.attempt ? this.attempt.count : 0;
@@ -667,7 +672,7 @@ function runTest() {
       const fps = parseFloat(msg.params.fps);
       const isCurrentCam = id === ex.attempt.camId.toString();
 
-      if (fps === 0) {
+      if (fps === -1) {
         return;
       }
       ex.attempt.addOutFps(id, fps);
@@ -937,6 +942,7 @@ function mad(arr) {
  * @returns {number}
  */
 function sigmoid(x, max) {
+    const sMax = Math.min(max, 100);
     return (1 / (1 + Math.exp(-x / max)) - 0.5) * max * 2;
 }
 
