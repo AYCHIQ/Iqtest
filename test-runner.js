@@ -812,8 +812,9 @@ function getId(msgId) {
  * @param {array} arr -- array of numbers
  * @return {number} median
  */
-function median(arr) {
-  if (Array.isArray(arr)) {
+function median(array) {
+  if (Array.isArray(array)) {
+    let arr = array.slice();
     if (arr.length > 0) {
       arr.sort(function (a,b) { return a - b; });
       const centre = arr.length / 2;
