@@ -19,13 +19,11 @@ module.exports = {
   },
   onconnect(fn) {
     iidk.on({type: 'IQ', action: 'CONNECTED'}, () => {
-      process.stderr.write('IIDK connected\n');  
       fn();
     });
   },
   ondisconnect(fn) {
     iidk.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
-      process.stderr.write('IIDK disconnected\n');  
       fn();
     });
   },

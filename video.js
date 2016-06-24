@@ -142,8 +142,6 @@ const MONITORPARAMS = {
   x: '0',
   y: '0',
 };
-video.on({type: 'IQ', action: 'CONNECTED'}, () => process.stderr.write('\nVideo connected\n'));
-video.on({type: 'IQ', action: 'DISCONNECTED'}, () => process.stderr.write('\nVideo disconnected\n'));
 
 module.exports = {
   connect(options) {

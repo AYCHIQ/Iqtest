@@ -467,7 +467,9 @@ new Promise ((resolve, reject) => {
 .catch(logError);
 
 iidk.onconnect(() => bootstrap());
+iidk.onconnect(() => stderr('IIDK connected'));
 iidk.ondisconnect(() => streamIdx -= 1);
+iidk.ondisconnect(() => stderr('IIDK ondisconnect'));
 
 function bootstrap() {
   ex = new Experiment({
@@ -508,6 +510,8 @@ function bootstrap() {
 }
 
 video.onconnect(() => warmUp());
+video.onconnect(() => stderr('Video connected'));
+video.ondisconnect(() => stderr('Video disconnected'));
 
 function initTest () {
   ex.newAttempt();
