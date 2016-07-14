@@ -610,7 +610,7 @@ function resetTimer () {
 }
 /**
  * Make sure system is ready
- * @returns
+ * @returns {Promise}
  */
 function chkSysReady() {
   return new Promise((resolve, reject) => {
@@ -628,7 +628,7 @@ function chkSysReady() {
 
 /**
  * Capture input stream FPS
- * @returns
+ * @returns {Promise}
  */
 function captureFps() {
   const testCamId = 1;
