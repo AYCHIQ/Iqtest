@@ -282,7 +282,6 @@ class Attempt {
     const delta = (median(allFpsOut.map(f => Math.abs(f - this.fpsIn))));
     const value = delta <= this.options.fpsThreshold;
 
-    this.ffHistory.push(value);
     return value;
   }
   targetCams(target) {
@@ -328,12 +327,12 @@ class Attempt {
   }
   seek(isOK = !FAILED) {
     const camHist3 = this.camHistory.slice(-3);
-    /* calling hasFullFps appends new value */
     const ffLast = this.ffHistory[this.ffHistory.length - 1];
     const ffNow = isOK ? this.hasFullFps : FAILED;
     let target = camHist3[camHist3.length - 1];
     let diff = camHist3.slice(-2).reduce((r, v) => Math.abs(r - v), 0);
 
+    this.ffHistory.push(ffNow);
     if (ffNow !== ffLast) {
       diff = Math.floor(diff / 2);
     }
