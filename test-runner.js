@@ -254,11 +254,11 @@ class Attempt {
     const minimising = dev < this.lastDev;
     
     this.lastDev = dev;
-    if (allHaveEnoughFps && matchTolerance) {
-      this.calmFails = 0;
-    } else {
-      this.calmFails += 1;
-    }
+    //if (allHaveEnoughFps) {
+    //  this.calmFails = 0;
+    //} else {
+    //  this.calmFails += 1;
+    //}
     return allHaveEnoughFps && !minimising;
   }
   get count() {
