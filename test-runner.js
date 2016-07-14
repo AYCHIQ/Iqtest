@@ -809,7 +809,7 @@ function report(e) {
   const height = s.height;
   const sfps = s.fps;
   const cpu = e.cpu.toFixed(2);
-  const fps = (e.fps / e.options.interval).toFixed(2);
+  const fps = e.fps.toFixed(2);
   const cams = e.cams;
   const sigma = e.camsDispersion.toFixed(2);
   const score = e.score.toFixed(2);
