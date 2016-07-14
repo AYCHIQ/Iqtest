@@ -3,7 +3,6 @@
   "interval": 6,
   "monitor": 1,
   "monitor-fails": 10,
-  "fps-tolerance": 0.05,
   "fps-threshold": 1,
   "cpu-ready-threshold": 10,
   "cpu-threshold": 100,

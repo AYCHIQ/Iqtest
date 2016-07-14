@@ -24,7 +24,6 @@ const STREAM = nconf.get('stream');
 const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
 const STAT_TIMEOUT = (STAT_INTERVAL + 10) * 1000;
-const FPS_TOLERANCE = nconf.get('fps-tolerance');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
 const CPU_READY = nconf.get('cpu-ready-threshold');
 const CPU_SAMPLES = nconf.get('cpu-samples');
@@ -37,7 +36,7 @@ const INIT_COUNT = nconf.get('cams');
 const REPORT_PATH = nconf.get('report-path');
 const VALIDATE_COUNT = nconf.get('validate');
 const DROP_RATIO = 1 - nconf.get('drop');
-const MAX_MONITOR_FAILS = nconf.get('monitor-fails');
+const MAX_FAILS = nconf.get('monitor-fails');
 
 /* General constants */
 const VIDEO = 'video.run core';
@@ -222,10 +221,12 @@ class Attempt {
       stderr('{cyan-fg}' + this.streamFps.map(f => f.toFixed(2)).join(' ') + '{/}');
       stderr(`FPS: ${median(this.streamFps).toFixed(2)}\tMAD: ${mad(this.streamFps).toFixed(3)}`);
       /** */
+      const dev = mad(this.streamFps);
       if (this.streamFps.length === this.options.fpsLen &&
-          mad(this.streamFps) < this.options.fpsTolerance) {
+          dev > this.lastDev) {
         this.fps = median(this.streamFps);
       }
+      this.lastDev = dev;
     }
   }
   /**
@@ -250,16 +251,15 @@ class Attempt {
     const allFpsOut = this.fpsOut();
     const allHaveEnoughFps = allFpsOut.length === (this.monitorFps.size * this.options.fpsLen);
     const dev = mad(allFpsOut);
-    const matchTolerance = Math.abs(this.lastDev - dev) < Math.pow(this.options.fpsTolerance, 1);
-
-//stderr(` [ ${Math.abs(this.lastDev - dev).toFixed(2)} < ${Math.pow(this.options.fpsTolerance, 2).toFixed(2)}] `);
+    const minimising = dev < this.lastDev;
+    
     this.lastDev = dev;
     if (allHaveEnoughFps && matchTolerance) {
       this.calmFails = 0;
     } else {
       this.calmFails += 1;
     }
-    return allHaveEnoughFps && matchTolerance;
+    return allHaveEnoughFps && !minimising;
   }
   get count() {
     return this.camId;
@@ -539,7 +539,6 @@ new Promise ((resolve, reject) => {
       stdout(`CPU usage samples\t${CPU_SAMPLES}\n`);
       stdout(`FPS samples\t${FPS_SAMPLES}\n`);
       stdout(`FPS threshold\t${FPS_THRESHOLD}\n`);
-      stdout(`FPS tolerance\t${FPS_TOLERANCE}\n`);
       stdout(`Vendor\tFormat\tWidth\tHeight\tFPS\tFPS(input)\tMax.cameras\tσ\tCPU\tScore\tStart time\tElapsed time\n`);
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
@@ -558,12 +557,11 @@ function bootstrap() {
   ex = new Experiment({
     fpsLen: FPS_SAMPLES,
     cpuLen: CPU_SAMPLES,
-    fpsTolerance: FPS_TOLERANCE,
     dropRatio: DROP_RATIO,
     fpsThreshold: FPS_THRESHOLD,
     cpuThreshold: CPU_THRESHOLD,
     validateCount: VALIDATE_COUNT,
-    maxFails: MAX_MONITOR_FAILS,
+    maxFails: MAX_FAILS,
     monitorId: MONITOR,
     interval: STAT_INTERVAL,
     cam: {
@@ -998,7 +996,6 @@ function showAttemptInfo(a) {
       ['count:', a.count.toString()].join('{|}'),
       ['mad:', (mad(allFpsOut) || 0).toFixed(3)].join('{|}'),
       ['σ:', (stdDev(allFpsOut) || 0).toFixed(3)].join('{|}'),
-      ['tolerance:', a.options.fpsTolerance.toFixed(3)].join('{|}'),
       ['Δmedian:', deltaMedian.toFixed(3)].join('{|}'),
       ['Δmean:', deltaMean.toFixed(3)].join('{|}'),
       ['Δthreshold:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
