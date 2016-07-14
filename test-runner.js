@@ -523,7 +523,7 @@ new Promise ((resolve, reject) => {
   Promise.all([deferOSInfo, deferCPUInfo])
     .then(() => {
       const dateString = new Date().toISOString();
-      const path = REPORT_PATH + '/' + (processor + '_' + dateString + '.tsv').replace(/[^A-Za-z0-9-_.]/g, '_'); 
+      const path = REPORT_PATH + '/' + (`${HOST}_${processor}_${dateString}.tsv`).replace(/[^A-Za-z0-9-_.]/g, '_'); 
       
       fileStream = fs.createWriteStream(path);
       return fileStream;
