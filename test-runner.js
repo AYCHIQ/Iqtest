@@ -580,7 +580,8 @@ function bootstrap() {
         `${timing.toDoubleDigit(d.Hour)}:` +
         `${timing.toDoubleDigit(d.Minute)}:` +
         `${timing.toDoubleDigit(d.Second)}`;
-    });
+    })
+    .catch(logError);
   if (ex.stream) {
     initTest();
   } else {
