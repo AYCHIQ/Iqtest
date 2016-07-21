@@ -640,6 +640,7 @@ function runTest() {
         }
       }
       dash.showAttemptInfo(ex.attempt);
+      dash.showProgress(streams, streamIdx, timing);
     }
   });
   cpuTimer = setInterval(() => fetchCPU().then((cpu) => ex.attempt.addCpu(cpu)), CPU_INTERVAL);
