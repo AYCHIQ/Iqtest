@@ -411,10 +411,10 @@ process.on('exit', () => {
   } 
 });
 process.on('uncaughtException', (err) => {
-  logError(`\n${progressTime()}\nCaught exception:`, err);
+  stderr('Caught exception:', err);
 });
 process.on('unhandledRejection', (reason, p) => {
-  logError(`\n${progressTime()}\nUnhandled Rejection at: Promise `, p, 'reason: ', reason.stack);
+  stderr('Unhandled Rejection at: Promise', p, 'reason: ', reason.stack);
 });
 
 /* Prepare video stream URI */
@@ -521,7 +521,7 @@ function bootstrap() {
   if (ex.stream) {
     initTest();
   } else {
-    stderr('Done!\n');
+    stderr('Done!');
     process.exit();
   }
   dash.showExInfo();
@@ -580,7 +580,7 @@ function captureFps() {
       if (ex.attempt.fpsIn !== 0) {
         video.offstats();
         video.removeIpCam(testCamId);
-        stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}\n`);
+        stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}`);
         resolve();
       }
     });
@@ -653,7 +653,7 @@ function fetchCPU() {
         .map((u) => (100 - u.PercentIdleTime));
       return usageArr[0];
     })
-  .catch((items, error) => stderr(`\nFailed to fetch CPU usage\n`));
+  .catch((items, error) => stderr('Failed to fetch CPU usage'));
 };
 
 function teardown(err) {
@@ -670,7 +670,7 @@ function teardown(err) {
     return;
   }
   /* Re-run test to get enough validation points */
-  stderr(`\nMax: ${ex.attempt.count}, finished in ${testTime}\n`);
+  stderr(`Max: ${ex.attempt.count}, finished in ${testTime}`);
   if (ex.isPending) {
     ex.maxCount = ex.attempt.count;
     initTest();
