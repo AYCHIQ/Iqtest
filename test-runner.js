@@ -681,7 +681,6 @@ function teardown(err) {
   return;
 }
 
-
 /**
  * Extract stream information encoded in filename
  * within RTSP URI.
@@ -752,15 +751,6 @@ function report(e) {
  */
 function resetSample (value, key, m) {
   m.set(key, []);
-}
-/**
- * Generates mapping function that calculates
- * deviation of values relative to reference value
- * @param {number} ref -- reference value
- * @returns {function}
- */
-function devFrom(ref) {
-  return (val, idx) => Math.abs(1 - val / ref);
 }
 
 /**
