@@ -9,6 +9,12 @@ const wsman = require('./wsman');
 const timing = require('./timing');
 const dash = require('./dashboard');
 
+/* Math utils */
+const {
+  sum, min, max,
+  mean, median, stdDev, mad
+} = require('./mathutils.js');
+
 /* Initialize parameters */
 nconf.argv()
   nconf.argv()
@@ -739,13 +745,6 @@ function report(e) {
 }
 
 /**
- * @param {array} arr -- array of numbers
- * @returns {number} sum
- */
-function sum(arr) {
-  return arr.reduce((sum, val) => sum + val, 0);
-}
-/**
  * Clear samples
  * @param {object} value
  * @param {object} key
@@ -754,53 +753,6 @@ function sum(arr) {
 function resetSample (value, key, m) {
   m.set(key, []);
 }
-/**
- * Mean calculation
- * @param {array} arr -- array of numbers
- * @returns {number} mean
- */
-function mean(arr) {
-  if (Array.isArray(arr)) {
-    return sum(arr) / arr.length;
-  } else {
-    return undefined;
-  }
-}
-/**
- * Maximum
- * @param {array} arr -- array of numbers
- * @returns {number}
- */
-function max(arr) {
-  return Math.max.apply(null, arr);
-}
-
-/**
- * Minimum
- * @param {array} arr -- array of numbers
- * @returns {number}
- */
-function min(arr) {
-  return Math.min.apply(null, arr);
-}
-
-/**
- * Standard deviation from mean
- * @param {array} arr -- array of numbers
- * @returns {number}
- */
-function stdDev(samples) {
-  if (Array.isArray(samples)) {
-    const smean = mean(samples);
-    const deviation = samples.map((val) => Math.pow(val - smean, 2));
-    const variance = mean(deviation);
-    const sd = Math.sqrt(variance);
-    return sd;
-  } else {
-    return undefined;
-  }
-}
-
 /**
  * Generates mapping function that calculates
  * deviation of values relative to reference value
@@ -818,51 +770,6 @@ function devFrom(ref) {
  */
 function getId(msgId) {
   return /([0-9]+)[^0-9]*$/.exec(msgId)[1];
-}
-
-/**
- * Median
- * @param {array} arr -- array of numbers
- * @return {number} median
- */
-function median(array) {
-  if (Array.isArray(array)) {
-    let arr = array.slice();
-    if (arr.length > 0) {
-      arr.sort(function (a,b) { return a - b; });
-      const centre = arr.length / 2;
-      const mA = Math.ceil(centre);
-      const mB = mA === centre ? mA + 1 : mA ;
-      return (arr[mA-1] + arr[mB-1]) / 2;
-    }
-  } else {
-    return undefined;
-  }
-}
-
-/** Median absolute deviation
- * @param {array} arr
- * @returns {number}
- */
-function mad(arr) {
-  if (Array.isArray(arr)) {
-    const med = median(arr);
-    const medDev = arr.map(v => Math.abs(v - med));
-    
-    return median(medDev);
-  } else {
-    return undefined;
-  }
-}
-/**
- * Sigmoid function
- * @param {number} x
- * @param {number} max -- sigmoid maximum
- * @returns {number}
- */
-function sigmoid(x, max) {
-    const sMax = Math.min(max, 100);
-    return (1 / (1 + Math.exp(-x / max)) - 0.5) * max * 2;
 }
 
 function stdout(m) {
