@@ -370,7 +370,7 @@ class Experiment {
     return this._sattr;
   }
   dropCount() {
-    this.startCount = Math.ceil((this.attempt.count || 1) * this.options.dropRatio);
+    this.startCount = Math.trunc((this.attempt.count || 1) * this.options.dropRatio) || 1;
   }
   get isPending() {
     return this.attempts.length < this.options.validateCount;
