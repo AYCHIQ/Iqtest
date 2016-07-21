@@ -2,13 +2,12 @@
 const fs = require('fs');
 const uuid = require('uuid');
 const _ = require('lodash');
-const blessed = require('blessed');
-const contrib = require('blessed-contrib');
 const nconf = require('nconf');
 const iidk = require('./iidk');
 const video = require('./video');
 const wsman = require('./wsman');
 const timing = require('./timing');
+const dash = require('./dashboard');
 
 /* Initialize parameters */
 nconf.argv()
@@ -53,75 +52,6 @@ const WS = {
 /* Global variables */
 const streams = [];
 let fileStream;
-
-/* UI */
-
-const screen = blessed.screen({
-  smartCSR: true,
-});
-const exInfo = blessed.box({
-  left: 0,
-  top: 1,
-  content: 'stream info',
-  width: '50%',
-  height: 4,
-  scrollable: 'alwaysScroll',
-  tags: true,
-  style: {
-    fg: 'green',
-  }
-});
-const progressBar = blessed.ProgressBar({
-  left: 0,
-  top: 0,
-  width: '100%',
-  height: 1,
-  pch: '▄',
-});
-const progressBox = blessed.box({
-  right: 0,
-  top: 1,
-  content: 'progress',
-  tags: true,
-  width: 40,
-  height: 4,
-});
-const attemptInfo = blessed.box({
-  left: 0,
-  top: 5,
-  tags: true,
-  width: 30,
-  height: 10, 
-});
-const line = contrib.line({
-  left: '40%+1',
-  top: '15%',
-  width: '60%-1',
-  height: '85%',
-  style: {
-    line: 'yellow',
-    text: 'green',
-    baseline: 'black'
-  },
-  label: 'Cameras',
-});
-const logBox = blessed.Log({
-  left: 0,
-  top: 17,
-  content: 'log',
-  width: '30%',
-  height: 'shrink',
-  scrollable: 'alwaysScroll',
-  tags: true,
-});
-screen.title = 'Intellect Platform Tester';
-screen.append(exInfo);
-screen.append(progressBar);
-screen.append(progressBox);
-screen.append(attemptInfo);
-screen.append(line);
-screen.append(logBox);
-screen.render();
 
 /**
  * @class
@@ -507,16 +437,16 @@ new Promise ((resolve, reject) => {
   let ramSize = 0;
   const deferBoardInfo = wsman.enumerate({ip: IP, resource: WS.Board, auth: WSMAN_AUTH})
     .then((items) => board = `${items[0].Manufacturer} ${items[0].Product}`)
-    .catch(logError);
+    .catch(stderr);
   const deferOSInfo = wsman.enumerate({ip: IP, resource: WS.OS, auth: WSMAN_AUTH})
     .then((items) => {
       osName = items[0].Caption;
       ramSize = items[0].TotalVisibleMemorySize / Math.pow(2, 20);
     })
-    .catch(logError);
+    .catch(stderr);
   const deferCPUInfo = wsman.enumerate({ip: IP, resource: WS.Processor, auth: WSMAN_AUTH})
     .then((items) => processor = items[0].Name)
-    .catch(logError);
+    .catch(stderr);
 
   video.stats(STAT_INTERVAL);
   
@@ -542,10 +472,10 @@ new Promise ((resolve, reject) => {
 
       iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
     })
-    .catch(logError);
+    .catch(stderr);
 
 })
-.catch(logError);
+.catch(stderr);
 
 iidk.onconnect(() => bootstrap());
 iidk.onconnect(() => stderr('IIDK connected'));
@@ -581,15 +511,15 @@ function bootstrap() {
         `${timing.toDoubleDigit(d.Minute)}:` +
         `${timing.toDoubleDigit(d.Second)}`;
     })
-    .catch(logError);
+    .catch(stderr);
   if (ex.stream) {
     initTest();
   } else {
     stderr('Done!\n');
     process.exit();
   }
-  showExInfo();
-  showProgress();
+  dash.showExInfo();
+  dash.showProgress(streams, streamIdx, timing);
 }
 
 video.onconnect(() => warmUp());
@@ -602,7 +532,7 @@ function initTest () {
   return iidk.stopModule(VIDEO)
     .then(() => iidk.startModule(VIDEO))
     .then(() => video.connect({ip: IP, host: HOST, reconnect: true}))
-    .catch(logError);
+    .catch(stderr);
 }
 function resetTimer () {
   clearTimeout(timer);
@@ -622,7 +552,7 @@ function chkSysReady() {
         clearInterval(checkId);
         resolve();
       }
-    }).catch(logError), CPU_INTERVAL);
+    }).catch(stderr), CPU_INTERVAL);
   });
 }
 
@@ -652,7 +582,7 @@ function captureFps() {
 }
 
 function warmUp() {
-  chkSysReady().then(captureFps).then(runTest).catch(logError);
+  chkSysReady().then(captureFps).then(runTest).catch(stderr);
 }
 
 function runTest() {
@@ -661,7 +591,7 @@ function runTest() {
    */
   video.setupMonitor(MONITOR);
   ex.attempt.targetCams(ex.startCount);
-  showExInfo(ex);
+  dash.showExInfo(ex);
 
   video.onstats((msg) => {
     if (ex.options.metricRe.test(msg.id)) {
@@ -703,7 +633,7 @@ function runTest() {
           ex.attempt.seek(FAILED);
         }
       }
-      showAttemptInfo(ex.attempt);
+      dash.showAttemptInfo(ex.attempt);
     }
   });
   cpuTimer = setInterval(() => fetchCPU().then((cpu) => ex.attempt.addCpu(cpu)), CPU_INTERVAL);
@@ -745,14 +675,6 @@ function teardown(err) {
   return;
 }
 
-function processorUsageString() {
-  const cpuUsage = ex.attempt.cpu;
-  const min = cpuUsage.min || 'n/a';
-  const mean = cpuUsage.mean || 'n/a';
-  const max = cpuUsage.max || 'n/a';
-
-  return `${min}%…${mean}%…${max}%`;
-}
 
 /**
  * Extract stream information encoded in filename
@@ -943,69 +865,17 @@ function sigmoid(x, max) {
     return (1 / (1 + Math.exp(-x / max)) - 0.5) * max * 2;
 }
 
-function progressTime() {
-  const doneStreams = streamIdx;
-  const rate = timing.elapsed('global') / doneStreams;
-  const estimatedMs = (streams.length - doneStreams) * rate;
-
-  return `Elapsed time:{|}${timing.elapsedString('global')}\n` +
-    `Remaining time:{|}${timing.getTimeString(estimatedMs)}\n` +
-    `Stream:{|} ${streamIdx}/${streams.length}`;
-}
-
 function stdout(m) {
   fileStream.write(m);
 }
 
-function stderr(m) {
-  logBox.log(m);
-  screen.render();
-  //process.stderr.write(m);
-}
-
-function logError() {
-  logBox.log(arguments);
-  screen.render();
-};
-function showExInfo(e) {
-  if (!e) {
-    exInfo.pushLine('');
-    return;
-  }
-  const s = e.streamAttr;
-  const counts = e.attempts.map(a => a.count);
-  
-  exInfo.popLine();
-  exInfo.pushLine(`${s.vendor} ${s.format} ${s.width}x${s.height}@${s.fps}fps{|}${counts}`);
-  screen.render();
-}
-function showAttemptInfo(a) {
-  const allFpsOut = a.fpsOut();
-  const deltaMedian = (median(allFpsOut.map(f => Math.abs(1 - f/a.fpsIn))) || 0);
-  const deltaMean = (mean(allFpsOut.map(f => Math.abs(1 - f/a.fpsIn))) || 0);
-  const dev = mad(allFpsOut || 0);
-
-
-  attemptInfo.setContent([
-      ['fps:', a.fpsIn.toFixed(2)].join('{|}'),
-      ['count:', a.count.toString()].join('{|}'),
-      ['mad:', (mad(allFpsOut) || 0).toFixed(3)].join('{|}'),
-      ['σ:', (stdDev(allFpsOut) || 0).toFixed(3)].join('{|}'),
-      ['Δmedian:', deltaMedian.toFixed(3)].join('{|}'),
-      ['Δmean:', deltaMean.toFixed(3)].join('{|}'),
-      ['Δthreshold:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
-      ['CPU:', processorUsageString()].join('{|}'),
-  ].join('\n'));
-
-  line.setData([{
-      title: 'num',
-      x: a.camHistory.map((v, i) => i),
-      y: a.camHistory,
-  }]);
-  screen.render();
-}
-function showProgress() {
-  progressBar.setProgress((streamIdx / streams.length) * 100);
-  progressBox.setContent(progressTime());
-  screen.render();
+function stderr(e) {
+  Array.prototype.forEach.call(arguments, a => {
+    if (a instanceof Error) {
+      dash.logError(a.message);
+      dash.logError(a.stack);
+    } else {
+      dash.logError(a);
+    }
+  });
 }
