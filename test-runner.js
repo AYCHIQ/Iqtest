@@ -21,7 +21,6 @@ nconf.argv()
   nconf.argv()
   .file({file: './config.json'});
 
-const HOST = nconf.get('host');
 const IP = nconf.get('ip');
 const IIDK_ID = nconf.get('iidk');
 const WSMAN_AUTH = nconf.get('wsauth');
@@ -50,6 +49,7 @@ const FAILED = false;
 const WS = {
   Board: 'Win32_BaseBoard',
   OS: 'Win32_OperatingSystem',
+  Computer: 'Win32_ComputerSystem',
   LocalTime: 'Win32_LocalTime',
   Processor: 'Win32_Processor',
   ProcessorPerf: 'Win32_PerfFormattedData_PerfOS_Processor',
@@ -58,6 +58,7 @@ const WS = {
 
 /* Global variables */
 const streams = [];
+let host = '';
 let fileStream;
 
 /**
@@ -436,6 +437,10 @@ new Promise ((resolve, reject) => {
     }
   });
 })
+.then(() => 
+  wsman.enumerate({ip: IP, resource: WS.Computer, auth: WSMAN_AUTH})
+    .then((items) => host = items[0].Name)
+)
 .then(() => {
   /* Get system info */
   let board = '';
@@ -460,7 +465,7 @@ new Promise ((resolve, reject) => {
   Promise.all([deferOSInfo, deferCPUInfo])
     .then(() => {
       const dateString = new Date().toISOString();
-      const path = REPORT_PATH + '/' + (`${HOST}_${processor}_${dateString}.tsv`).replace(/[^A-Za-z0-9-_.]/g, '_'); 
+      const path = REPORT_PATH + '/' + (`${host}_${processor}_${dateString}.tsv`).replace(/[^A-Za-z0-9-_.]/g, '_'); 
       
       fileStream = fs.createWriteStream(path);
       return fileStream;
@@ -477,7 +482,7 @@ new Promise ((resolve, reject) => {
       stdout(`FPS threshold\t${FPS_THRESHOLD}\n`);
       stdout(`Vendor\tFormat\tWidth\tHeight\tFPS\tFPS(input)\tMax.cameras\tσ\tCPU\tScore\tStart time\tElapsed time\n`);
 
-      iidk.connect({ip: IP, host: HOST, iidk: IIDK_ID, reconnect: true});
+      iidk.connect({ip: IP, host: host, iidk: IIDK_ID, reconnect: true});
     })
     .catch(stderr);
 
@@ -538,7 +543,7 @@ function initTest () {
   timing.init('test');
   return iidk.stopModule(VIDEO)
     .then(() => iidk.startModule(VIDEO))
-    .then(() => video.connect({ip: IP, host: HOST, reconnect: true}))
+    .then(() => video.connect({ip: IP, host: host, reconnect: true}))
     .catch(stderr);
 }
 function resetTimer () {
