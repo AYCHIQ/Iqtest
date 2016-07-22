@@ -60,6 +60,8 @@ const WS = {
 const streams = [];
 let host = '';
 let fileStream;
+let timer = null;
+let cpuTimer = null;
 
 /**
  * @class
@@ -401,8 +403,6 @@ class Experiment {
 
 }
 let streamIdx = 0;
-let timer = null;
-let cpuTimer = null;
 let ex = new Experiment();
 
 timing.init('global');
