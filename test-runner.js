@@ -561,10 +561,11 @@ function resetTimer () {
 function chkSysReady() {
   return new Promise((resolve, reject) => {
     let checkId = -1;
-    
+
+    stderr('Waiting for CPU');
     checkId = setInterval(() => fetchCPU().then(cpu => {
       if (cpu < CPU_READY) {
-        stderr('\nCPU OK\t');
+        stderr('CPU OK');
         clearInterval(checkId);
         resolve();
       }
