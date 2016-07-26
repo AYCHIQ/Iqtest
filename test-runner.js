@@ -231,10 +231,12 @@ class Attempt {
       case 1:
         stderr('+');
         for (id += 1; id <= target; id += 1) {
+          /** ADD */
           video.setupIpCam(id, ex.stream, ex.options.cam);
           video.showCam(id, this.options.monitorId);
           this.monitorFps.set(id, []);
           this.camId = id;
+          /**/
         }
         this.clearCpu();
         break;
@@ -244,10 +246,12 @@ class Attempt {
           teardown('Stream failure');
         }
         for (id; id > target && id > 1; id -= 1) {
+          /** REMOVE */
           video.hideCam(id, this.options.monitorId);
           video.removeIpCam(id);
           this.monitorFps.delete(id);
           this.camId = id - 1;
+          /**/
         }
         this.clearCpu();
         break;
@@ -601,7 +605,9 @@ function runTest() {
   /**
    * Commence Test, when we are ready
    */
+  /** SETUP */
   video.setupMonitor(MONITOR);
+  /**/
   ex.attempt.targetCams(ex.startCount);
   dash.showExInfo(ex);
 
