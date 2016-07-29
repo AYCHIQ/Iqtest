@@ -12,7 +12,6 @@
     "blessed": "^0.1.81",
     "blessed-contrib": "^3.5.5",
     "iq-node": "git+https://github.com/insonifi/iq-node.git",
-    "lodash": "^4.3.0",
     "nconf": "^0.8.4",
     "uuid": "^2.0.1",
     "xmlbuilder": "^4.2.1",
