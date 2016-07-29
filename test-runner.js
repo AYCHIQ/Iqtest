@@ -576,12 +576,11 @@ function resetTimer () {
  * Make sure system is ready
  * @returns {Promise}
  */
-function chkSysReady() {
+function chkSysReady(readyUsage) {
   return new Promise((resolve, reject) => {
-
     stderr('Waiting for CPU');
     pollCPU(cpu => {
-      if (cpu < CPU_READY) {
+      if (cpu < readyUsage) {
         stderr('CPU OK');
         resolve();
         return false;
@@ -622,7 +621,8 @@ function captureFps() {
 }
 
 function warmUp() {
-  chkSysReady().then(captureFps).then(runTest).catch(stderr);
+  chkSysReady(CPU_READY).then(captureFps).then(runTest).catch(stderr);
+}
 /**
  * Poll CPU usage after delay  and call function to process it
  * @param {function} cb -- callback function, must return boolean:
