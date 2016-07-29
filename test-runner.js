@@ -253,7 +253,6 @@ class Attempt {
           /** ADD */
           video.setupIpCam(id, ex.stream, ex.options.cam);
           video.showCam(id, this.options.monitorId);
-          this.monitorFps.set(id, []);
           this.camId = id;
           /**/
         }
