@@ -64,7 +64,53 @@ let timer = null;
 let cpuTimer = null;
 
 /**
- * @class
+ * @class SampleStore
+ * @param {number} slen - number of samples to store
+ *
+ */
+class SampleStore {
+  constructor(slen) {
+    this.slen = slen;
+    this.samples = [];
+    this.indices = new Map();
+  }
+  /**
+   * Add sample to storage
+   * @param {number} id - key for samples
+   * @param {number} val - value of the sample
+   * @method reset - resets all sample values to undefined
+   * @property {boolean} isComplete -  whether we have completed sample length
+   * @property {array} all - returns array of all defined elements
+   * @returns
+   */
+  add(id, val) {
+    let i = ((this.indices.has(id) ? this.indices.get(id) : -1) + 1) % this.slen;
+
+    this.samples[id * this.slen + i] = val;
+    this.indices.set(id, i);
+  }
+  delete(id) {
+    this.samples.fill(undefined, id * this.slen, this.slen);
+    this.indices.delete(id);
+  }
+  reset() {
+    this.indices.clear();
+    this.samples.fill(undefined);
+  }
+  get isComplete() {
+    return this.all.length === this.slen * this.indices.size;
+  }
+  get all() {
+    return this.samples.filter(s => s !== undefined);
+  }
+  get mad() {
+    return mad(this.all);
+  }
+}
+
+
+/**
+ * @class Attempts
  * @param {object} options -- attempt options
  * @property {map} monitorFps -- FPS displayed in monitor
  * @property {number} fpsIn -- calculated input FPS
@@ -80,7 +126,6 @@ let cpuTimer = null;
  * @property {number} lastDev -- recent deviation value 
  * @property {boolean} ignoreCPU -- whether we exceeded CPU limit
  *                                  and should ignore CPU usage
- * @property {boolean} hasEnoughFps -- whether we have enough FPS samples
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
  * @property {boolean} isCalm -- whether system metrics have stabilised
  * @property {boolean} hasFullFps -- calculate whether system renders all frames it receives
@@ -91,12 +136,11 @@ let cpuTimer = null;
  * @method targetCams -- add/remove cameras to match target number
  * @method seek -- remove half of last camera number
  * @method clearCpu -- clear CPU samples 
- * @method {number} fpsOut -- mean output FPS
  */
 class Attempt {
   constructor(options) {
     this.options = options;
-    this.monitorFps = new Map();
+    this.samples = new SampleStore(options.fpsLen);
     this.streamFps = [];
     this.fps = 0;
     this.cpuSamples = [];
@@ -116,11 +160,7 @@ class Attempt {
    * @returns
    */
   addOutFps(id, fps) {
-    if (this.monitorFps.has(+id)) {
-      let samples = this.monitorFps.get(+id);
-      samples.push(fps);
-      this.monitorFps.set(+id, samples.slice(-this.options.fpsLen));
-    }
+    this.samples.add(id, fps);
     this.monitorFails = 0;
   }
   addCpu(cpu) {
@@ -169,37 +209,19 @@ class Attempt {
       this.lastDev = dev;
     }
   }
-  /**
-   * Get mean output FPS
-   * @param {number} id -- camera Id
-   * @returns {number}
-   */
-  fpsOut(id) {
-    if (id) {
-      return mean(this.monitorFps.get(+id));
-    } else {
-      return Array.from(this.monitorFps).reduce((r, kv) => r.concat(kv[1]), []);
-    }
-  }
-  get hasEnoughFps() {
-    return this.monitorFps.get(+id).length === this.options.fpsLen;
-  }
   get hasEnoughCpu() {
     return this.cpuSamples.length === this.options.cpuLen;
   }
   get isCalm() {
-    const allFpsOut = this.fpsOut();
-    const allHaveEnoughFps = allFpsOut.length === (this.monitorFps.size * this.options.fpsLen);
-    const dev = mad(allFpsOut);
-    const minimising = dev < this.lastDev;
-    
-    this.lastDev = dev;
-    //if (allHaveEnoughFps) {
-    //  this.calmFails = 0;
-    //} else {
-    //  this.calmFails += 1;
-    //}
-    return allHaveEnoughFps && !minimising;
+    if (this.samples.isComplete) {
+      const dev = this.samples.mad;
+      const minimising = dev < this.lastDev;
+
+      this.lastDev = dev;
+      return !minimising;
+    } else {
+      return false;
+    }
   }
   get count() {
     return this.camId;
@@ -217,9 +239,7 @@ class Attempt {
     return quota;
   }
   get hasFullFps() {
-    //const allFpsOut = Array.from(this.monitorFps).map(kv => mean(kv[1]));
-    const allFpsOut = this.fpsOut();
-    const delta = (median(allFpsOut.map(f => Math.abs(f - this.fpsIn))));
+    const delta = median(this.samples.all.map(f => Math.abs(f - this.fpsIn)));
     const value = delta <= this.options.fpsThreshold;
 
     return value;
@@ -249,7 +269,7 @@ class Attempt {
           /** REMOVE */
           video.hideCam(id, this.options.monitorId);
           video.removeIpCam(id);
-          this.monitorFps.delete(id);
+          this.samples.delete(id);
           this.camId = id - 1;
           /**/
         }
@@ -264,7 +284,7 @@ class Attempt {
     }
     this.camHistory.push(target);
     /** Reset calm metrics */
-    this.monitorFps.forEach(resetSample);
+    this.samples.reset();
     this.lastDev = Infinity;
     this.calmFails = 0;
     stderr(`=${this.count}`);
