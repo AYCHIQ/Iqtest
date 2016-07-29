@@ -580,16 +580,17 @@ function resetTimer () {
  */
 function chkSysReady() {
   return new Promise((resolve, reject) => {
-    let checkId = -1;
 
     stderr('Waiting for CPU');
-    checkId = setInterval(() => fetchCPU().then(cpu => {
+    pollCPU(cpu => {
       if (cpu < CPU_READY) {
         stderr('CPU OK');
-        clearInterval(checkId);
         resolve();
+        return false;
+      } else {
+        return true;
       }
-    }).catch(stderr), CPU_INTERVAL);
+    });
   });
 }
 
@@ -620,8 +621,18 @@ function captureFps() {
 
 function warmUp() {
   chkSysReady().then(captureFps).then(runTest).catch(stderr);
+/**
+ * Poll CPU usage after delay  and call function to process it
+ * @param {function} cb -- callback function, must return boolean:
+ *                          true -- continue polling
+ *                          false -- stop polling
+ * @returns
+ */
+function pollCPU(cb) {
+  setTimeout(() => fetchCPU().then((cpu) => {
+    cb(cpu) &&  pollCPU(cb);
+  }), CPU_INTERVAL);
 }
-
 function runTest() {
   /**
    * Commence Test, when we are ready
@@ -676,7 +687,7 @@ function runTest() {
       dash.showProgress(streams, streamIdx, timing);
     }
   });
-  cpuTimer = setInterval(() => fetchCPU().then((cpu) => ex.attempt.addCpu(cpu)), CPU_INTERVAL);
+  pollCPU(cpu => (ex.attempt.addCpu(cpu), true));
 }
 
 function fetchCPU() {
@@ -692,7 +703,6 @@ function fetchCPU() {
 function teardown(err) {
   const testTime = timing.elapsedString('test');
 
-  clearInterval(cpuTimer);
   ex.dropCount();
   video.offstats();
   if (err) {
