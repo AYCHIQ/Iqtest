@@ -2,7 +2,6 @@
 'use strict';
 const fs = require('fs');
 const uuid = require('uuid');
-const _ = require('lodash');
 const nconf = require('nconf');
 const iidk = require('./iidk');
 const video = require('./video');
