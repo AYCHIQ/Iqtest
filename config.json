@@ -1,6 +1,6 @@
 {
   "iidk": 0,
-  "interval": 6,
+  "interval": 6000,
   "monitor": 1,
   "monitor-fails": 10,
   "fps-threshold": 1,

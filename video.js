@@ -168,6 +168,15 @@ module.exports = {
       }
     });
   },
+  requestStats() {
+    video.sendReact({
+      type: 'STATISTIC',
+      action: 'GET',
+      params: {
+        slave_id: this.host,
+      }
+    });
+  },
   onstats(fn) {
     video.on({type: 'STATISTIC', action: 'SET'}, fn);
   },

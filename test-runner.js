@@ -28,7 +28,7 @@ const MONITOR = nconf.get('monitor');
 const STREAM = nconf.get('stream');
 const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
-const STAT_TIMEOUT = (STAT_INTERVAL + 10) * 1000;
+const STAT_TIMEOUT = STAT_INTERVAL * 5;
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
 const CPU_READY = nconf.get('cpu-ready-threshold');
 const CPU_SAMPLES = nconf.get('cpu-samples');
@@ -484,8 +484,6 @@ new Promise ((resolve, reject) => {
     .then((items) => processor = items[0].Name)
     .catch(stderr);
 
-  video.stats(STAT_INTERVAL);
-  
   Promise.all([deferOSInfo, deferCPUInfo])
     .then(() => {
       const dateString = new Date().toISOString();
@@ -602,18 +600,22 @@ function captureFps() {
   const testCamId = 1;
 
   video.setupIpCam(testCamId, ex.stream);
+  video.requestStats();
   return new Promise((resolve, reject) => {
     video.onstats((msg) => {
       if (ex.attempt.fpsIn === 0 && /GRABBER.*Receive/.test(msg.id)) {
         const fps = parseFloat(msg.params.fps);
 
         ex.attempt.fpsIn = fps;
+        setTimeout(() => video.requestStats(), ex.options.interval);
+        return;
       }
       if (ex.attempt.fpsIn !== 0) {
         video.offstats();
         video.removeIpCam(testCamId);
         stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}`);
         resolve();
+        return;
       }
     });
   });
@@ -685,8 +687,10 @@ function runTest() {
       }
       dash.showAttemptInfo(ex.attempt);
       dash.showProgress(streams, streamIdx, timing);
+      setTimeout(() => video.requestStats(), ex.options.interval);
     }
   });
+  video.requestStats();
   pollCPU(cpu => (ex.attempt.addCpu(cpu), true));
 }
 
