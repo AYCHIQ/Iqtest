@@ -60,7 +60,7 @@ const streams = [];
 let host = '';
 let fileStream;
 let timer = null;
-let cpuTimer = null;
+let statTimer = null;
 
 /**
  * @class SampleStore
