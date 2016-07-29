@@ -145,6 +145,7 @@ const MONITORPARAMS = {
 
 module.exports = {
   connect(options) {
+    options.host += '.1_iq';
     this.host = options.host;
     return video.connect(Object.assign({port: 'video'}, options));
   },
