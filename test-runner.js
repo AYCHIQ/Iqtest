@@ -597,15 +597,16 @@ function chkSysReady(readyUsage) {
 function captureFps() {
   const testCamId = 1;
 
+  stderr('Determining FPS');
   video.setupIpCam(testCamId, ex.stream);
-  video.requestStats();
   return new Promise((resolve, reject) => {
+    pollStats(ex.options.interval);
     video.onstats((msg) => {
       if (ex.attempt.fpsIn === 0 && /GRABBER.*Receive/.test(msg.id)) {
         const fps = parseFloat(msg.params.fps);
 
         ex.attempt.fpsIn = fps;
-        setTimeout(() => video.requestStats(), ex.options.interval);
+        pollStats(ex.options.interval);
         return;
       }
       if (ex.attempt.fpsIn !== 0) {
@@ -622,6 +623,7 @@ function captureFps() {
 function warmUp() {
   chkSysReady(CPU_READY).then(captureFps).then(runTest).catch(stderr);
 }
+
 /**
  * Poll CPU usage after delay  and call function to process it
  * @param {function} cb -- callback function, must return boolean:
@@ -634,6 +636,17 @@ function pollCPU(cb) {
     cb(cpu) &&  pollCPU(cb);
   }), CPU_INTERVAL);
 }
+
+/**
+ * Request statistics, but not earlier than inverval
+ * @global {number} statTimer -- timer id
+ * @param {number} interval
+ * @returns
+ */
+function pollStats(interval) {
+  clearTimeout(statTimer);
+  statTimer = setTimeout(() => video.requestStats(), interval);
+}
 function runTest() {
   /**
    * Commence Test, when we are ready
@@ -645,6 +658,7 @@ function runTest() {
   dash.showExInfo(ex);
 
   video.onstats((msg) => {
+    pollStats(ex.options.interval);
     if (ex.options.metricRe.test(msg.id)) {
       const id = getId(msg.id);
       const fps = parseFloat(msg.params.fps);
@@ -686,10 +700,9 @@ function runTest() {
       }
       dash.showAttemptInfo(ex.attempt);
       dash.showProgress(streams, streamIdx, timing);
-      setTimeout(() => video.requestStats(), ex.options.interval);
     }
   });
-  video.requestStats();
+  pollStats(ex.options.interval);
   pollCPU(cpu => (ex.attempt.addCpu(cpu), true));
 }
 
