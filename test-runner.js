@@ -555,7 +555,7 @@ function bootstrap() {
   dash.showProgress(streams, streamIdx, timing);
 }
 
-video.onconnect(() => warmUp());
+video.onconnect(warmUp);
 video.onconnect(() => stderr('Video connected'));
 video.ondisconnect(() => stderr('Video disconnected'));
 
