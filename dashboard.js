@@ -89,9 +89,6 @@ function showExInfo(e) {
 }
 
 function showAttemptInfo(a, progressStr) {
-  const allFpsOut = a.fpsOut();
-
-
   attemptInfo.setContent([
       ['fps:', a.fpsIn.toFixed(2)].join('{|}'),
       ['count:', a.count.toString()].join('{|}'),
