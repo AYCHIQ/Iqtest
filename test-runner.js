@@ -130,6 +130,7 @@ class SampleStore {
  * @property {boolean} hasFullFps -- calculate whether system renders all frames it receives
  * @property {array} streamFps -- FPS series of input video stream
  * @property {number} fps -- input FPS calculated value
+ * @property {boolean} isRunning -- whether attempt is being executed
  * @method addOutFps -- add camera FPS sample
  * @method addCpu -- add CPU sample
  * @method targetCams -- add/remove cameras to match target number
@@ -150,6 +151,7 @@ class Attempt {
     this.ffHistory = [true];
     this.lastDev = Infinity;
     this.ignoreCPU = this.options.lastCount === 0 ? false : true;
+    this.isRunning = true;
   }
   /**
    * Add FPS sample for camera
@@ -274,6 +276,7 @@ class Attempt {
         this.clearCpu();
         break;
       case 0:
+        this.isRunning = false;
         teardown();
         return;
         break;
@@ -647,6 +650,7 @@ function pollStats(interval) {
   statTimer = setTimeout(() => video.requestStats(), interval);
 }
 function runTest() {
+  const attempt = ex.attempt;
   /**
    * Commence Test, when we are ready
    */
@@ -661,48 +665,51 @@ function runTest() {
     if (ex.options.metricRe.test(msg.id)) {
       const id = getId(msg.id);
       const fps = parseFloat(msg.params.fps);
-      const isCurrentCam = id === ex.attempt.camId.toString();
+      const isCurrentCam = id === attempt.camId.toString();
 
       if (fps === -1) {
         return;
       }
-      ex.attempt.addOutFps(id, fps);
-      if (isCurrentCam && ex.attempt.hasEnoughCpu) {
-        if (ex.attempt.isCalm) {
+      attempt.addOutFps(id, fps);
+      if (isCurrentCam && attempt.hasEnoughCpu) {
+        if (attempt.isCalm) {
           /* Cameras has stable FPS -> iteration is complete */
-          if (ex.attempt.ignoreCPU) {
-            ex.attempt.seek();
+          if (attempt.ignoreCPU) {
+            attempt.seek();
           }
           /** 
            * Add more cameras to saturate CPU,
            */
-          else if (ex.attempt.hasFullFps) {
-            let n = ex.attempt.camsQuota;
+          else if (attempt.hasFullFps) {
+            let n = attempt.camsQuota;
 
             stderr('E');
-            ex.attempt.targetCams(n);
+            attempt.targetCams(n);
           } 
           /**
            * We exceeded limit, and must seek to find it
            */
           else {
-            ex.attempt.seek(FAILED);
+            attempt.seek(FAILED);
           }
         }
         /**
          * FPS is settling down too long, presumably system is overloaded
          */
-        else if (ex.attempt.calmFails > ex.options.maxFails) {
+        else if (attempt.calmFails > ex.options.maxFails) {
           stderr('F');
-          ex.attempt.seek(FAILED);
+          attempt.seek(FAILED);
         }
       }
-      dash.showAttemptInfo(ex.attempt);
+      dash.showAttemptInfo(attempt);
       dash.showProgress(streams, streamIdx, timing);
     }
   });
   pollStats(ex.options.interval);
-  pollCPU(cpu => (ex.attempt.addCpu(cpu), true));
+  pollCPU(cpu => {
+    attempt.addCpu(cpu);
+    return attempt.isRunning;
+  });
 }
 
 function fetchCPU() {
