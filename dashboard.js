@@ -1,6 +1,5 @@
 'use strict';
 const blessed = require('blessed');
-const contrib = require('blessed-contrib');
 
 const screen = blessed.screen({
   smartCSR: true,
@@ -28,7 +27,7 @@ const progressBox = blessed.box({
   right: 0,
   top: 1,
   content: 'progress',
-  tags: true,
+  tags: false,
   width: 40,
   height: 4,
 });
@@ -36,26 +35,26 @@ const attemptInfo = blessed.box({
   left: 0,
   top: 5,
   tags: true,
-  width: 30,
-  height: 10, 
+  width: 40,
+  height: 9, 
 });
-const line = contrib.line({
-  left: '40%+1',
-  top: '15%',
-  width: '60%-1',
-  height: '85%',
-  style: {
-    line: 'yellow',
-    text: 'green',
-    baseline: 'black'
-  },
-  label: 'Cameras',
+const statTimestamp = blessed.box({
+  left:0,
+  top: 15,
+  tags: false,
+  width: 40,
+  height: 1,
+});
+const hostInfo = blessed.box({
+  right: 0,
+  widht: 17,
+  height: 4, 
 });
 const logBox = blessed.Log({
   left: 0,
   top: 17,
   content: 'log',
-  width: '30%',
+  width: '100%',
   height: 'shrink',
   scrollable: 'alwaysScroll',
   tags: true,
@@ -65,13 +64,12 @@ screen.append(exInfo);
 screen.append(progressBar);
 screen.append(progressBox);
 screen.append(attemptInfo);
-screen.append(line);
+screen.append(hostInfo);
+screen.append(statTimestamp);
 screen.append(logBox);
-screen.render();
 
-function logError(msg) {
+function log(msg) {
   logBox.log(msg);
-  screen.render();
 };
 
 function showExInfo(e) {
@@ -85,24 +83,26 @@ function showExInfo(e) {
   exInfo.popLine();
   exInfo.pushLine(`${s.vendor} ${s.format} ${s.width}x${s.height}@${s.fps}fps{|}${counts}`);
   exInfo.setScrollPerc(100);
-  screen.render();
 }
 
 function showAttemptInfo(a, progressStr) {
   attemptInfo.setContent([
-      ['fps:', a.fpsIn.toFixed(2)].join('{|}'),
+      ['fps in:', a.fpsIn.toFixed(2)].join('{|}'),
       ['count:', a.count.toString()].join('{|}'),
-      ['D:', a.lastDev.toFixed(3)].join('{|}'),
-      ['θ:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
-      ['CPU:', processorUsageString(a)].join('{|}'),
+      ['target:', a.target.toString()].join('{|}'),
+      ['history:', a.camHistory.slice(-4).toString()].join('{|}'),
+      ['S:', a.lastSamples.map(s => s.toFixed(2))].join('{|}'),
+      ['dev:', a.lastDev.toFixed(3)].join('{|}'),
+      ['fps m:', a.fpsOut.toFixed(3)].join('{|}'),
+      ['threshold:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
+      ['CPU:', a.cpuSamples].join('{|}'),
   ].join('\n'));
+}
 
-  line.setData([{
-      title: 'num',
-      x: a.camHistory.map((v, i) => i),
-      y: a.camHistory,
-  }]);
-  screen.render();
+function showStatTs() {
+  statTimestamp.setContent([
+    'last stat at:', (new Date()).toLocaleTimeString('de-DE')
+  ].join('{|}'));
 }
 
 function showProgress(streams, streamIdx, timing) {
@@ -116,7 +116,13 @@ function showProgress(streams, streamIdx, timing) {
     ['Remaining time:', timing.getTimeString(estimatedMs)].join('{|}'),
     ['Stream:', streamIdx + '/' + streams.length].join('{|}'),
   ].join('\n'));
-  screen.render();
+}
+
+function showHostInfo(ip, host) {
+  hostInfo.setContent([
+    ['Host:', host].join('{|}'),
+    ['IP:', ip].join('{|}'),
+  ]);
 }
 
 /**
@@ -126,16 +132,20 @@ function showProgress(streams, streamIdx, timing) {
  */
 function processorUsageString(attempt) {
   const cpuUsage = attempt.cpu;
-  const min = cpuUsage.min || 'n/a';
-  const mean = cpuUsage.mean || 'n/a';
-  const max = cpuUsage.max || 'n/a';
+  const min = cpuUsage.min;
+  const mean = cpuUsage.mean;
+  const max = cpuUsage.max;
 
   return `${min}%…${mean}%…${max}%`;
 }
 
+setInterval(() => screen.render(), 1000);
+
 module.exports = {
-  logError,
+  log,
   showExInfo,
   showAttemptInfo,
+  showHostInfo,
+  showStatTs,
   showProgress,
 }

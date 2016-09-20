@@ -3,7 +3,6 @@ const http = require('http');
 const uuid = require('uuid');
 const builder = require('xmlbuilder');
 const xmldoc = require('xmldoc');
-const _ = require('lodash');
 
 const OK = 'OK';
 
@@ -23,7 +22,7 @@ function pull(options) {
     const isEnd = xml.descendantWithPath('s:Body.n:PullResponse.n:EndOfSequence');
     const isError = xml.valueWithPath('s:Body.s:Fault.s:Code.s:Subcode.s:Value');
     if (pullResponse) {
-        accumulator.push(_.reduce(pullResponse.firstChild.children, (reduc, el) => {
+        accumulator.push(pullResponse.firstChild.children.reduce((reduc, el) => {
             reduc[el.name.split(':')[1]] = el.val;
             return reduc;
         }, {}));

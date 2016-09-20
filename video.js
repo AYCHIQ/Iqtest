@@ -3,7 +3,6 @@ const IqClient = require('iq-node').Client;
 const video = new IqClient(); 
 
 const GRABPARAMS = {
-  _TRANSPORT_ID: '',
   auth: '',
   brand: '',
   chan: 0,
@@ -29,12 +28,11 @@ const GRABPARAMS = {
 };
 const CAMPARAMS = {
   'AUDIO.mic_id.count': 0,
-  _TRANSPORT_ID: '',
   activity: '',
   additional_info: '',
   alarm_rec: 1,
   arch_days: 0,
-  armed: 0,
+  armed: 1,
   audio_type: '',
   blinding: 0,
   bosch_ptz_protocol: '',
@@ -92,62 +90,30 @@ const CAMPARAMS = {
   yuv: '',
 };
 const MONITORPARAMS = {
-  'CAM.arch.count': '0',
-  'CAM.cam.count': '0',
-  'CAM.compression.count': '0',
-  'CAM.compressor.count': '0',
-  'CAM.direct_connect.count': '0',
-  'CAM.gate.count': '0',
-  'CAM.gate_arch.count': '0',
-  'CAM.gstream_version.count': '0',
-  'CAM.guid.count': '0',
-  'CAM.ipstorage.count': '0',
-  'CAM.speed.count': '0',
-  'CAM.stream_id.count': '0',
-  __slave_id: '',
-  allow_arch_hours: '2147483647',
-  allow_archop_hours: '2147483647',
-  allow_delete_files: '',
-  allow_export_files: '1',
-  allow_move: '',
-  allow_protect_files: '1',
-  allow_unprotect_files: '1',
-  antialiasing: '0',
-  arch_id: '',
-  check_rights: '0',
-  cycle: '',
-  enable: '1',
-  flags: '',
-  from_last_logon: '0',
-  from_last_logon_op: '0',
-  h: '100',
-  inited_slave_id: '',
-  max_cams: '',
-  min_cams: '',
-  monitor: '0',
+  antialiasing: 0,
+  enable: 1,
+  h: 100,
   monitor_ch: '',
   monitor_cw: '',
   name: '',
   objname: '',
-  overlay: '2',
-  panel: '1',
-  parent_id: '',
-  player_id: '',
-  show_titles: '1',
-  speaker_id: '',
-  tel_prior: '1',
-  telemetry: '',
-  type: '',
-  w: '100',
-  x: '0',
-  y: '0',
+  overlay: 2,
+  panel: 1,
+  parent_id: 1,
+  w: 100,
+  x: 0,
+  y: 0,
 };
 
 module.exports = {
   connect(options) {
-    options.host += '.1_iq';
     this.host = options.host;
-    return video.connect(Object.assign({port: 'video'}, options));
+    this.slave_id = [this.host].join('.');
+    this.connected = false;
+    return video.connect(Object.assign({}, options, {port: 'video', host: this.host}));
+  },
+  disconnect() {
+    video.disconnect();
   },
   stats(interval) {
     video.on({type: 'IQ', action: 'CONNECTED'},
@@ -156,7 +122,7 @@ module.exports = {
         action: 'START',
         params: {
           interval: interval || 1,
-          slave_id: this.host,
+          slave_id: this.slave_id,
         }
       }));
   },
@@ -165,7 +131,7 @@ module.exports = {
       type: 'STATISTIC',
       action: 'STOP',
       params: {
-        slave_id: this.host,
+        slave_id: this.slave_id,
       }
     });
   },
@@ -174,7 +140,7 @@ module.exports = {
       type: 'STATISTIC',
       action: 'GET',
       params: {
-        slave_id: this.host,
+        slave_id: this.slave_id,
       }
     });
   },
@@ -183,6 +149,12 @@ module.exports = {
   },
   offstats() {
     video.off({type: 'STATISTIC', action: 'SET'});
+  },
+  onattach(fn) {
+    video.on({type: 'GRABBER', action: 'CONNECT_OK'}, fn);
+  },
+  offattach() {
+    video.on({type: 'GRABBER', action: 'CONNECT_OK'});
   },
   onconnect(fn) {
     video.on({type: 'IQ', action: 'CONNECTED'}, () => {
@@ -202,19 +174,17 @@ module.exports = {
     });
   },
   setupMonitor(id, params) {
+    this.monitorId = id;
     const name = `Monitor ${id}`;
     video.sendReact({
       type: 'MONITOR',
       id,
       action: 'SETUP',
       params: Object.assign({}, MONITORPARAMS, {
-        __slave_id: this.host,
-        inited_slave_id: this.host,
         name,
         objname: name,
       })
     });
-
     video.sendReact({
       type: 'MONITOR',
       id,
@@ -281,7 +251,7 @@ module.exports = {
       action: 'ADD_SHOW',
       params: {
         cam,
-        slave_id: this.host,
+        slave_id: this.slave_id,
   //       stream_id: cam + '.1',
       }
     });
@@ -293,7 +263,6 @@ module.exports = {
       action: 'REMOVE',
       params: {
         cam,
-        slave_id: this.host,
   //       stream_id: cam + '.1',
       }
     });
@@ -304,7 +273,8 @@ module.exports = {
       id: cam,
       action: 'START_VIDEO',
       params: {
-        slave_id: `${this.host}.${id}`,
+        direct_connect: 0,
+        slave_id: this.slave_id, 
       },
     });
   },

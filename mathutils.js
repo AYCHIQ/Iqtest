@@ -3,7 +3,7 @@
  * @returns {number} sum
  */
 function sum(arr) {
-  return arr.reduce((sum, val) => sum + val, 0);
+  return arr.filter(isFinite).reduce((sum, val) => sum + val, 0);
 }
 
 /**
@@ -15,7 +15,7 @@ function mean(arr) {
   if (Array.isArray(arr)) {
     return sum(arr) / arr.length;
   } else {
-    return undefined;
+    return -1;
   }
 }
 
@@ -25,7 +25,7 @@ function mean(arr) {
  * @returns {number}
  */
 function max(arr) {
-  return Math.max.apply(null, arr);
+  return Math.max.apply(null, arr.filter(isFinite));
 }
 
 /**
@@ -34,7 +34,7 @@ function max(arr) {
  * @returns {number}
  */
 function min(arr) {
-  return Math.min.apply(null, arr);
+  return Math.min.apply(null, arr.filter(isFinite));
 }
 
 /**
@@ -50,7 +50,7 @@ function stdDev(samples) {
     const sd = Math.sqrt(variance);
     return sd;
   } else {
-    return undefined;
+    return -1;
   }
 }
 
@@ -61,7 +61,7 @@ function stdDev(samples) {
  */
 function median(array) {
   if (Array.isArray(array)) {
-    let arr = array.slice();
+    let arr = array.filter(isFinite).slice();
     if (arr.length > 0) {
       arr.sort(function (a,b) { return a - b; });
       const centre = arr.length / 2;
@@ -69,9 +69,8 @@ function median(array) {
       const mB = mA === centre ? mA + 1 : mA ;
       return (arr[mA-1] + arr[mB-1]) / 2;
     }
-  } else {
-    return undefined;
   }
+  return -1;
 }
 
 
@@ -86,7 +85,7 @@ function mad(arr) {
     
     return median(medDev);
   } else {
-    return undefined;
+    return -1;
   }
 }
 
