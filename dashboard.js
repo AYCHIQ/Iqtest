@@ -1,5 +1,6 @@
 'use strict';
 const blessed = require('blessed');
+const {debounce} = require('./utils');
 
 const screen = blessed.screen({
   smartCSR: true,
@@ -27,9 +28,16 @@ const progressBox = blessed.box({
   right: 0,
   top: 1,
   content: 'progress',
-  tags: false,
-  width: 40,
+  tags: true,
+  width: 30,
   height: 4,
+});
+const hostInfo = blessed.box({
+  top: 5,
+  right: 0,
+  tags: true,
+  width: 30,
+  height: 2, 
 });
 const attemptInfo = blessed.box({
   left: 0,
@@ -41,14 +49,9 @@ const attemptInfo = blessed.box({
 const statTimestamp = blessed.box({
   left:0,
   top: 15,
-  tags: false,
+  tags: true,
   width: 40,
   height: 1,
-});
-const hostInfo = blessed.box({
-  right: 0,
-  widht: 17,
-  height: 4, 
 });
 const logBox = blessed.Log({
   left: 0,
@@ -59,6 +62,7 @@ const logBox = blessed.Log({
   scrollable: 'alwaysScroll',
   tags: true,
 });
+const render = debounce(() => screen.render(), 1000);
 screen.title = 'Intellect Platform Tester';
 screen.append(exInfo);
 screen.append(progressBar);
@@ -67,9 +71,11 @@ screen.append(attemptInfo);
 screen.append(hostInfo);
 screen.append(statTimestamp);
 screen.append(logBox);
+render();
 
 function log(msg) {
   logBox.log(msg);
+  render();
 };
 
 function showExInfo(e) {
@@ -83,6 +89,7 @@ function showExInfo(e) {
   exInfo.popLine();
   exInfo.pushLine(`${s.vendor} ${s.format} ${s.width}x${s.height}@${s.fps}fps{|}${counts}`);
   exInfo.setScrollPerc(100);
+  render();
 }
 
 function showAttemptInfo(a, progressStr) {
@@ -97,12 +104,14 @@ function showAttemptInfo(a, progressStr) {
       ['threshold:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
       ['CPU:', a.cpuSamples].join('{|}'),
   ].join('\n'));
+  render();
 }
 
 function showStatTs() {
   statTimestamp.setContent([
     'last stat at:', (new Date()).toLocaleTimeString('de-DE')
   ].join('{|}'));
+  render();
 }
 
 function showProgress(streams, streamIdx, timing) {
@@ -116,13 +125,15 @@ function showProgress(streams, streamIdx, timing) {
     ['Remaining time:', timing.getTimeString(estimatedMs)].join('{|}'),
     ['Stream:', streamIdx + '/' + streams.length].join('{|}'),
   ].join('\n'));
+  render();
 }
 
 function showHostInfo(ip, host) {
   hostInfo.setContent([
     ['Host:', host].join('{|}'),
     ['IP:', ip].join('{|}'),
-  ]);
+  ].join('\n'));
+  render();
 }
 
 /**
@@ -139,7 +150,6 @@ function processorUsageString(attempt) {
   return `${min}%…${mean}%…${max}%`;
 }
 
-setInterval(() => screen.render(), 1000);
 
 module.exports = {
   log,
