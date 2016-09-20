@@ -69,8 +69,23 @@ function getId(msgId) {
   return /([0-9]+)[^0-9]*$/.exec(msgId)[1];
 }
 
+/**
+ * Make debounced function
+ * @param {function} fn -- function to call
+ * @param {number} delay -- delay in ms
+ * @returns {function}
+ */
+function debounce(fn, delay) {
+  let timerId = null;
+  return function () {
+    clearTimeout(timerId);
+    timerId = setTimeout((args) => fn.apply(null, args), delay, arguments);
+  }
+};
+
 module.exports = {
   parseUri,
   report,
   getId,
+  debounce,
 };
