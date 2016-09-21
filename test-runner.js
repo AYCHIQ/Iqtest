@@ -229,6 +229,10 @@ function captureFps() {
 }
 
 function warmUp() {
+  if (ex.attempt.lastSamples.length > 0) {
+    ex.invalidAtmp();
+    ex.newAttempt();
+  }
   stderr('Warming up...');
   chkSysReady(CPU_READY).then(captureFps).then(runTest)
     .catch(teardown);
