@@ -151,7 +151,7 @@ exports.enumerate = function enumerate (options) {
                 reject,
             }));
         });
-        enumReq.on('error', (err) => reject(accumulator, err));
+        enumReq.on('error', err => reject(err));
         enumReq.end(enumBody);
     });
 }
