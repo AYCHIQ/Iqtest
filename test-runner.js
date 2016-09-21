@@ -361,7 +361,6 @@ function teardown(err) {
     err = 'Data is invalid!';
   }
   if (err) {
-    streamIdx -= 1;
     ex.invalidAtmp();
     stderr(err);
     initTest();
