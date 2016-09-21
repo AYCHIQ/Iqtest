@@ -21,7 +21,7 @@ class Timing {
   }
   getTimeString(n) {
     const t = isFinite(n) ? n : 0;
-    const hrs = this.toDoubleDigit(t / HOURS);
+    const hrs = (t / HOURS);
     const m = t % HOURS;
     const min = this.toDoubleDigit(m / MINUTES);
     const s = m % MINUTES;
