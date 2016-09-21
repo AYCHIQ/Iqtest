@@ -90,8 +90,8 @@ new Promise ((resolve, reject) => {
     }
   });
 })
-.then(() => stderr('Fetching platform description'))
 .then(() => {
+  stderr('Fetching platform description');
   return Promise.all([fetchHostname(), fetchBoardInfo(), fetchOSInfo(), fetchCPUInfo()])
     .then(([hostname, board, {osName, ramSize}, processor]) => {
       const dateString = new Date().toISOString();
@@ -117,7 +117,7 @@ new Promise ((resolve, reject) => {
 })
 .then(() => iidk.connect({ip: IP, host, iidk: IIDK_ID, reconnect: true}))
 .then(() => video.connect({ip: IP, host, reconnect: true}))
-.catch(r => stderr(r));
+.catch(stderr);
 
 iidk.onconnect(bootstrap);
 iidk.onconnect(() => stderr('IIDK connected'));
@@ -176,7 +176,7 @@ function initTest () {
   timing.init('test');
   return iidk.stopModule(VIDEO).then(() => iidk.startModule(VIDEO))
     .then(warmUp)
-    .catch(r => stderr(r));
+    .catch(stderr);
 }
 /**
  * Make sure system is ready
