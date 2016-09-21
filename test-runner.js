@@ -8,21 +8,13 @@ const video = require('./video');
 const timing = require('./timing');
 const dash = require('./dashboard');
 
-/** Suite tools */
-const {Attempt, Experiment} = require('./suite');
-const {
-  fetchHostname, fetchBoardInfo, fetchOSInfo,
-  fetchCPUInfo, fetchDate,
-  fetchCPU, fetchMem,
-} = require('./wsutils');
-const {report, getId} = require('./utils');
-
 /* Initialize parameters */
 nconf.argv()
   nconf.argv()
   .file({file: './config.json'});
 
 const IP = nconf.get('ip');
+const WSAUTH = nconf.get('wsauth');
 const IIDK_ID = nconf.get('iidk');
 const MONITOR = nconf.get('monitor');
 const STREAM = nconf.get('stream');
@@ -43,6 +35,16 @@ const REPORT_PATH = nconf.get('report-path');
 const VALIDATE_COUNT = nconf.get('validate');
 const DROP_RATIO = 1 - nconf.get('drop');
 const MAX_FAILS = nconf.get('monitor-fails');
+
+/** Suite tools */
+const {Attempt, Experiment} = require('./suite');
+const {
+  fetchHostname, fetchBoardInfo, fetchOSInfo,
+  fetchCPUInfo, fetchDate,
+  fetchCPU, fetchMem,
+} = require('./wsutils')({ip: IP, auth: WSAUTH});
+const {report, getId, debounce} = require('./utils');
+const getResources = () => Promise.all([fetchCPU(), fetchMem()]);
 
 /* General constants */
 const VIDEO = 'video.run core';

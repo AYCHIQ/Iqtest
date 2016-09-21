@@ -3,13 +3,6 @@ const wsman = require('./wsman');
 const video = require('./video');
 const timing = require('./timing');
 
-/* Initialize parameters */
-nconf.argv()
-  nconf.argv()
-  .file({file: './config.json'});
-
-const auth = nconf.get('wsauth');
-const ip = nconf.get('ip');
 const WS = {
   Board: 'Win32_BaseBoard',
   OS: 'Win32_OperatingSystem',
@@ -21,7 +14,7 @@ const WS = {
   Process: 'Win32_Process',
 }
 
-module.exports = {
+module.exports = ({auth, ip}) => ({
   fetchCPU() {
     return wsman.enumerate({auth, ip, resource: WS.ProcessorPerf})
       .then(items => {
@@ -67,4 +60,4 @@ module.exports = {
           `${timing.toDoubleDigit(d.Second)}`;
       })
   },
-};
+});
