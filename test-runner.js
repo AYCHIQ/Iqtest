@@ -148,6 +148,7 @@ function bootstrap() {
   ex.handlers = {
     add(id) { 
       video.setupIpCam(id, stream, {drives: REC_PATH});
+      video.showCam(id, attempt.options.monitorId);
     },
     remove(id) {
       video.hideCam(id, ex.options.monitorId);
