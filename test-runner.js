@@ -251,6 +251,7 @@ function runTest() {
   video.onstats((msg) => {
     dash.showStatTs();
     const isMetric = ex.options.metricRe.test(msg.id);
+    const id = isMetric ? parseInt(getId(msg.id)) : -1;
     const fps = isMetric ? parseFloat(msg.params.fps) : -1;
     const isTargetCam = isMetric && id === attempt.target;
     const isCurrentCam = isMetric && id === attempt.camId;
