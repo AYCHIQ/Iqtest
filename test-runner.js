@@ -339,12 +339,13 @@ function runTest() {
       attempt.seek(FAILED);
       return;
     }
+
+    dash.showAttemptInfo(attempt);
     pollStats();
   });
   pollStats();
   pollUsage((cpu, freeMB) => {
     attempt.addCpu(cpu);
-    dash.showAttemptInfo(attempt);
     if (freeMB < FREEMB_THRESHOLD) {
       stderr('Not enough memory to continue');
       teardown();
