@@ -267,13 +267,13 @@ function runTest() {
      */
     if ((isCurrentCam && !isTargetCam && attempt.hasOutFps(id)) ||
          attempt.camId === 0) {
+      const {taget, count, cpu, hasFullFps} = attempt;
+      const {cpuThreshold} = attempt.options;
       /**
        * Stop adding estimated cameras if CPU is overloaded
        * or FPS is below threshold
        */
-      if (attempt.target > attempt.count &&
-          attempt.cpu.mean > attempt.options.cpuThreshold ||
-          attempt.hasFullFps) {
+      if (target > count && cpu.mean > cpuThreshold || !hasFullFps) {
 
         stderr('Exceeded CPU threshold');
         attempt.pendingGen.return();
