@@ -208,7 +208,7 @@ function captureFps() {
   stderr('Determining FPS');
   ex.handlers.add(testCamId);
   return new Promise((resolve, reject) => {
-    pollStats(0);
+    pollStats();
     video.onstats((msg) => {
       if (ex.attempt.fpsIn === 0 && ex.options.refRe.test(msg.id)) {
         const fps = parseFloat(msg.params.fps);
@@ -221,7 +221,7 @@ function captureFps() {
         resolve();
         return;
       }
-      pollStats(ex.options.interval);
+      pollStats();
     });
   });
 }
@@ -311,7 +311,7 @@ function runTest() {
       return;
     }
   });
-  pollStats(ex.options.interval);
+  pollStats();
   pollUsage((cpu, freeMB) => {
     attempt.addCpu(cpu);
     dash.showAttemptInfo(attempt);
@@ -380,13 +380,7 @@ function stderr(e) {
     }
   });
 }
-const pollStats = (function () {
-  let timerId = null;
-  return function (delay) {
-    clearTimeout(timerId);
-    timerId = setTimeout(() => video.requestStats(), delay);
-  }
-})();
+const pollStats = debounce(() => video.requestStats(), STAT_INTERVAL);
 const pollUsage = (function () {
   let timerId = null;
   /**
