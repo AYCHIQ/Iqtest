@@ -273,7 +273,7 @@ function runTest() {
        */
       if (attempt.target > attempt.count &&
           attempt.cpu.mean > attempt.options.cpuThreshold ||
-          attemp.hasFullFps) {
+          attempt.hasFullFps) {
 
         stderr('Exceeded CPU threshold');
         attempt.pendingGen.return();
