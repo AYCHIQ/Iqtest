@@ -1,6 +1,6 @@
 {
   "iidk": 1,
-  "interval": 4000,
+  "interval": 2750,
   "monitor": 1,
   "monitor-fails": 10,
   "freemb-threshold": 300,
@@ -8,7 +8,7 @@
   "cpu-ready-threshold": 10,
   "cpu-threshold": 95,
   "cpu-samples": 5,
-  "cpu-interval": 2000,
+  "cpu-interval": 1333,
   "fps-samples": 5,
   "rec": "A:\\",
   "cams": 1,
