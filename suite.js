@@ -126,16 +126,16 @@ class Attempt {
     this.streamFps.add(0, fps);
     const {isComplete, mad, median} = this.streamFps;
 
+    log(`{cyan-fg}median: ${(median).toFixed(2)}\t` +
+      `dev: ${mad.toFixed(3)}\t` +
+        `n: ${this.streamFps.all.length}{/}`);
+
     if (isComplete && (mad * GOLDEN_RATIO_) > this.lastDev) {
       this.fps = median;
       this.streamFps.reset();
       return;
     }
     this.lastDev = mad > 0 ? mad : this.lastDev;
-
-    log(`{cyan-fg}median: ${(median).toFixed(2)}\t` +
-      `dev: ${mad.toFixed(3)}\t` +
-        `n: ${this.streamFps.all.length}{/}`);
   }
   get hasEnoughCpu() {
     return this.cpuSamples.length === this.options.cpuLen;
