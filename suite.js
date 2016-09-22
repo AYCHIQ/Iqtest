@@ -140,7 +140,7 @@ class Attempt {
     return this.cpuSamples.length === this.options.cpuLen;
   }
   get hasEnoughSamples() {
-    return this.samles.isComplete;
+    return this.samples.isComplete;
   }
   get isCalm() {
     if (this.samples.isComplete) {
