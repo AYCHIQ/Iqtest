@@ -274,7 +274,7 @@ function runTest() {
        * Stop adding estimated cameras if CPU is overloaded
        * or FPS doesn't pass sanity check
        */
-      if ((target > count && cpu.max > cpuThreshold) || !hasSaneFps)) {
+      if ((target > count && cpu.max > cpuThreshold) || !hasSaneFps) {
 
         stderr(`Overloaded {grey-fg}max CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
         attempt.pendingGen.return();
