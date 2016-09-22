@@ -141,7 +141,6 @@ function bootstrap() {
     validateCount: VALIDATE_COUNT,
     maxFails: MAX_FAILS,
     monitorId: MONITOR,
-    interval: STAT_INTERVAL,
     refRe: /GRABBER.*Receive/,
     metricRe: /*/FileRecorder.*OUT/,*/ /CAM.*OUT/,
   });
@@ -155,9 +154,6 @@ function bootstrap() {
       video.removeIpCam(id);
     },
     teardown,
-    stats() {
-      pollStats(0);
-    }
   };
   timing.init('stream');
   fetchDate().then(d => ex.start = d);
@@ -254,14 +250,8 @@ function runTest() {
 
   video.onstats((msg) => {
     dash.showStatTs();
-    if (!attempt.hasPendingGen) {
-      pollStats(ex.options.interval);
-    }
     const isMetric = ex.options.metricRe.test(msg.id);
-    const isReference = ex.options.refRe.test(msg.id);
-    const id = isMetric || isReference ? parseInt(getId(msg.id)) : -1;
     const fps = isMetric ? parseFloat(msg.params.fps) : -1;
-    const count = isReference ? parseInt(msg.params.count) : -1;
     const isCurrentCam = id === attempt.target;
 
     if (isMetric && fps > 0) {
@@ -320,12 +310,6 @@ function runTest() {
       attempt.seek(FAILED);
       return;
     }
-    if ((isReference && !attempt.hasOutFps(id))) {
-      video.showCam(id, attempt.options.monitorId);
-      return;
-    }
-    //(isMetric && count === 0)
-    //video.hideCam(id, attempt.options.monitorId);
   });
   pollStats(ex.options.interval);
   pollUsage((cpu, freeMB) => {

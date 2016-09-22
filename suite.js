@@ -35,7 +35,6 @@ const GOLDEN_RATIO = 0.618;
  * @property {boolean} isRunning -- whether attempt is being executed
  * @property {number} target -- target number of cameras
  * @property {generator} pendingGen -- currently running generator
- * @property {boolean} hasPendingGen -- do we have running generator
  * @property {array} lastSamples -- array of sample for last added camera
  * @method addOutFps -- add camera output FPS sample
  * @method addInFps -- add camera input FPS sample
@@ -63,7 +62,6 @@ class Attempt {
     this.ignoreCPU = this.options.lastCount === 0 ? false : true;
     this.isRunning = true;
     this.target = -1;
-    this.hasPendingGen = false;
     this.pendingGen = (function* (){})();
     this.pendingGen.return();
     /**
@@ -71,7 +69,6 @@ class Attempt {
      * @member add
      * @member remove
      * @member teardown
-     * @member stats
      */
     this.handle = handlers;
     this.streamFps.init(0);
@@ -198,7 +195,6 @@ class Attempt {
           this.handle.teardown('Stream failure');
         }
         this.pendingGen = (function* () {
-          this.hasPendingGen = true;
           for (id; id > this.target && id > 1; id -= 1) {
             /** REMOVE */
             this.samples.delete(id);
@@ -227,9 +223,7 @@ class Attempt {
     this.calmFails = 0;
   }
   finaliseCams() {
-    this.hasPendingGen = false;
     this.target = this.camId;
-    this.handle.stats();
   }
   seek(hasFullFps) {
     this.camHistory.push(this.count);
@@ -290,7 +284,6 @@ class Experiment {
      *                                   must be completed to finish Experiment
      * @member {number} maxFails -- maximum number of various fails
      * @member {number} monitorId -- Monitor Id used by test
-     * @member {number} interval -- statistics interval
      * @member {object} cam -- camera parameters
      * @member {regexp} metricRe -- regexp to match stat parameter
      * @member {number} lastCount -- number of cameras on last attempt
