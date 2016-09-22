@@ -27,8 +27,10 @@ const GOLDEN_RATIO = 0.618;
  * @property {boolean} ignoreCPU -- whether we exceeded CPU limit
  *                                  and should ignore CPU usage
  * @property {boolean} hasEnoughCpu -- whether we have enough CPU usage samples
+ * @property {boolean} hasEnoughSamples -- whether we have enough FPS samples
  * @property {boolean} isCalm -- whether system metrics have stabilised
  * @property {boolean} hasFullFps -- calculate whether system renders all frames it receives
+ * @property {boolean} hasSaneFps -- do we have sane sample values (s/ref > GOLDEN_RATIO) 
  * @property {array} streamFps -- FPS series of input video stream
  * @property {number} fpsIn -- input FPS calculated value
  * @property {number} fpsOut -- output FPS median value
@@ -137,6 +139,9 @@ class Attempt {
   get hasEnoughCpu() {
     return this.cpuSamples.length === this.options.cpuLen;
   }
+  get hasEnoughSamples() {
+    return this.samles.isComplete;
+  }
   get isCalm() {
     if (this.samples.isComplete) {
       const dev = this.samples.mad;
@@ -166,6 +171,10 @@ class Attempt {
     const value = delta < this.options.fpsThreshold;
 
     return value;
+  }
+  get hasSaneFps() {
+    return this.hasEnoughSamples &&
+      this.samples.median > this.fpsIn * GOLDEN_RATIO;
   }
   targetCams(target) {
     let id = this.camId;

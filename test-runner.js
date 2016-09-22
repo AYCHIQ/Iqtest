@@ -268,14 +268,13 @@ function runTest() {
      */
     if ((isCurrentCam && !isTargetCam && attempt.hasOutFps(id)) ||
          attempt.camId === 0) {
-      const {target, count, cpu, hasFullFps, fpsOut} = attempt;
+      const {target, count, cpu, hasSaneFps} = attempt;
       const {cpuThreshold} = attempt.options;
       /**
        * Stop adding estimated cameras if CPU is overloaded
-       * or FPS is below threshold
+       * or FPS doesn't pass sanity check
        */
-      if ((target > count && cpu.max > cpuThreshold) ||
-          (fpsOut !== -1 && !hasFullFps)) {
+      if ((target > count && cpu.max > cpuThreshold) || !hasSaneFps)) {
 
         stderr(`Overloaded {grey-fg}max CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
         attempt.pendingGen.return();
