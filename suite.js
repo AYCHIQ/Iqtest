@@ -130,7 +130,7 @@ class Attempt {
       this.streamFps.reset();
       return;
     }
-    this.lastDev = mad;
+    this.lastDev = mad > 0 ? mad : this.lastDev;
 
     log(`{cyan-fg}median: ${(median).toFixed(2)}\t` +
       `dev: ${mad.toFixed(3)}\t` +
