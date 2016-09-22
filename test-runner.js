@@ -277,7 +277,7 @@ function runTest() {
       if ((target > count && cpu.mean > cpuThreshold) ||
           (fpsOut !== -1 && !hasFullFps)) {
 
-        stderr(`Overloaded {grey-fg}CPU: ${cpu.mean} FPS: ${fpsOut.toFixed(2)}{/}`);
+        stderr(`Overloaded {grey-fg}CPU:${cpu.mean.toFixed(2)}% FPS:${fpsOut.toFixed(2)}{/}`);
         attempt.pendingGen.return();
         attempt.finaliseCams();
       }
