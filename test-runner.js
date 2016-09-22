@@ -276,7 +276,7 @@ function runTest() {
        */
       if ((target > count && cpu.max > cpuThreshold) || !hasSaneFps) {
 
-        stderr(`Overloaded {grey-fg}max CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
+        stderr(`Sanity alert {grey-fg}max CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
         attempt.pendingGen.return();
         attempt.finaliseCams();
       }
