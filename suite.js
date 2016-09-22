@@ -156,7 +156,7 @@ class Attempt {
     const usage = this.cpu.mean;
     const cpuThreshold = this.options.cpuThreshold * GOLDEN_RATIO;
     const specificUsage = usage / camsCount;
-    const estimated = Math.floor(cpuThreshold / specificUsage);
+    const estimated = Math.round(cpuThreshold / specificUsage);
 
     return estimated;
   }
