@@ -228,6 +228,7 @@ function captureFps() {
 }
 
 function warmUp() {
+  video.offstats();
   if (ex.attempt.lastSamples.length > 0) {
     ex.invalidAtmp();
     ex.newAttempt();
