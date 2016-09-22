@@ -263,19 +263,21 @@ function runTest() {
     }
 
     /**
+     * Sanity check
      * If current camera statistics provides FPS add next one
      */
     if ((isCurrentCam && !isTargetCam && attempt.hasOutFps(id)) ||
          attempt.camId === 0) {
-      const {target, count, cpu, hasFullFps} = attempt;
+      const {target, count, cpu, hasFullFps, fpsOut} = attempt;
       const {cpuThreshold} = attempt.options;
       /**
        * Stop adding estimated cameras if CPU is overloaded
        * or FPS is below threshold
        */
-      if (target > count && cpu.mean > cpuThreshold || !hasFullFps) {
+      if ((target > count && cpu.mean > cpuThreshold) ||
+          (fpsOut !== -1 && !hasFullFps)) {
 
-        stderr(`Overloaded {grey-fg}CPU: ${cpu.mean} FPS: ${attempt.fpsOut}{/}`);
+        stderr(`Overloaded {grey-fg}CPU: ${cpu.mean} FPS: ${fpsOut}{/}`);
         attempt.pendingGen.return();
         attempt.finaliseCams();
       }
