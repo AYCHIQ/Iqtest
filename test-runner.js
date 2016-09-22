@@ -274,10 +274,10 @@ function runTest() {
        * Stop adding estimated cameras if CPU is overloaded
        * or FPS is below threshold
        */
-      if ((target > count && cpu.mean > cpuThreshold) ||
+      if ((target > count && cpu.max > cpuThreshold) ||
           (fpsOut !== -1 && !hasFullFps)) {
 
-        stderr(`Overloaded {grey-fg}CPU:${cpu.mean.toFixed(2)}% FPS:${fpsOut.toFixed(2)}{/}`);
+        stderr(`Overloaded {grey-fg}max CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
         attempt.pendingGen.return();
         attempt.finaliseCams();
       }
