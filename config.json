@@ -6,7 +6,7 @@
   "freemb-threshold": 300,
   "fps-threshold": 1,
   "cpu-ready-threshold": 10,
-  "cpu-threshold": 95,
+  "cpu-threshold": 90,
   "cpu-samples": 5,
   "cpu-interval": 1333,
   "fps-samples": 5,
