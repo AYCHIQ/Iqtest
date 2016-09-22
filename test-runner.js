@@ -257,17 +257,9 @@ function runTest() {
     const isTargetCam = isMetric && id === attempt.target;
     const isCurrentCam = isMetric && id === attempt.camId;
 
-    /** Ignore irrelevant statistics */
-    if (!isMetric) {
-      pollStats();
-      return;
-    }
     if (isMetric && fps > 0) {
       attempt.addOutFps(id, fps);
       dash.showProgress(streams, streamIdx, timing);
-    }
-    if (isMetric && fps <= 0) {
-      return;
     }
 
     /**
@@ -288,6 +280,15 @@ function runTest() {
         attempt.finaliseCams();
       }
       attempt.pendingGen.next();
+      return;
+    }
+
+    /** Ignore irrelevant statistics */
+    if (!isMetric) {
+      pollStats();
+      return;
+    }
+    if (isMetric && fps <= 0) {
       return;
     }
 
