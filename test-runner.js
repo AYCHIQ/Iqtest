@@ -252,7 +252,8 @@ function runTest() {
     dash.showStatTs();
     const isMetric = ex.options.metricRe.test(msg.id);
     const fps = isMetric ? parseFloat(msg.params.fps) : -1;
-    const isCurrentCam = id === attempt.target;
+    const isTargetCam = isMetric && id === attempt.target;
+    const isCurrentCam = isMetric && id === attempt.camId;
 
     if (isMetric && fps > 0) {
       attempt.addOutFps(id, fps);
@@ -262,7 +263,7 @@ function runTest() {
       return;
     }
 
-    const shouldCalculate = isMetric && isCurrentCam && attempt.hasEnoughCpu;
+    const shouldCalculate = isMetric && isTargetCam && attempt.hasEnoughCpu;
     const isCalm = shouldCalculate ? attempt.isCalm : false;
     const hasFullFps = shouldCalculate ? attempt.hasFullFps : false;
     const isReady = shouldCalculate && isCalm;
