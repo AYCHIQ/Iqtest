@@ -8,6 +8,7 @@ const {
   mean, median, stdDev, mad
 } = require('./mathutils.js');
 const GOLDEN_RATIO = 0.618;
+const GOLDEN_RATIO_ = 1.618;
 
 /**
  * @class Attempts
@@ -125,7 +126,7 @@ class Attempt {
     this.streamFps.add(0, fps);
     const {isComplete, mad, median} = this.streamFps;
 
-    if (isComplete && mad > this.lastDev) {
+    if (isComplete && (mad * GOLDEN_RATIO_) > this.lastDev) {
       this.fps = median;
       this.streamFps.reset();
       return;
@@ -145,7 +146,7 @@ class Attempt {
   get isCalm() {
     if (this.samples.isComplete) {
       const dev = this.samples.mad;
-      const minimising = dev < this.lastDev;
+      const minimising = (dev * GOLDEN_RATIO_) < this.lastDev;
 
       this.lastDev = dev;
       return !minimising;
