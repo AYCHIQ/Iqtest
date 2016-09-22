@@ -339,6 +339,7 @@ function runTest() {
       attempt.seek(FAILED);
       return;
     }
+    pollStats();
   });
   pollStats();
   pollUsage((cpu, freeMB) => {
