@@ -268,7 +268,7 @@ function runTest() {
      */
     if ((isCurrentCam && !isTargetCam && attempt.hasOutFps(id)) ||
          attempt.camId === 0) {
-      const {target, count, cpu, hasSaneFps} = attempt;
+      const {target, count, cpu, hasSaneFps, fpsOut} = attempt;
       const {cpuThreshold} = attempt.options;
       /**
        * Stop adding estimated cameras if CPU is overloaded
