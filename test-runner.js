@@ -269,6 +269,27 @@ function runTest() {
       return;
     }
 
+    /**
+     * If current camera statistics provides FPS add next one
+     */
+    if ((isCurrentCam && !isTargetCam && attempt.hasOutFps(id)) ||
+         attempt.camId === 0) {
+      /**
+       * Stop adding estimated cameras if CPU is overloaded
+       * or FPS is below threshold
+       */
+      if (attempt.target > attempt.count &&
+          attempt.cpu.mean > attempt.options.cpuThreshold ||
+          attemp.hasFullFps) {
+
+        stderr('Exceeded CPU threshold');
+        attempt.pendingGen.return();
+        attempt.finaliseCams();
+      }
+      attempt.pendingGen.next();
+      return;
+    }
+
     const shouldCalculate = isMetric && isTargetCam && attempt.hasEnoughCpu;
     const isCalm = shouldCalculate ? attempt.isCalm : false;
     const hasFullFps = shouldCalculate ? attempt.hasFullFps : false;
@@ -326,18 +347,6 @@ function runTest() {
       stderr('Not enough memory to continue');
       teardown();
     }
-    /**
-     * Stop adding estimated cameras if CPU is overloaded
-     */
-    if (attempt.target > attempt.count && 
-        cpu > attempt.options.cpuThreshold) {
-      stderr(`(${cpu}% = ${attempt.count})`);
-      attempt.pendingGen.return();
-      attempt.finaliseCams();
-    }
-    attempt.pendingGen.next();
-
-    /** Update display */
     dash.showAttemptInfo(attempt);
 
     return attempt.isRunning;
