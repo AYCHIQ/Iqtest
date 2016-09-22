@@ -274,9 +274,9 @@ function runTest() {
        * Stop adding estimated cameras if CPU is overloaded
        * or FPS doesn't pass sanity check
        */
-      if ((target > count && cpu.max > cpuThreshold) || (hasEnoughSamples && !hasSaneFps)) {
+      if ((target > count && cpu.mean > cpuThreshold) || (hasEnoughSamples && !hasSaneFps)) {
 
-        stderr(`Sanity alert {grey-fg}max CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
+        stderr(`Sanity alert {grey-fg}CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
         attempt.pendingGen.return();
         attempt.finaliseCams();
       }
