@@ -228,10 +228,9 @@ function captureFps() {
 }
 
 function warmUp() {
-  video.offstats();
   if (ex.attempt.lastSamples.length > 0) {
-    ex.invalidAtmp();
-    ex.newAttempt();
+    teardown('Lost connection in during attempt');
+    return;
   }
   stderr('Warming up...');
   chkSysReady(CPU_READY).then(captureFps).then(runTest)
