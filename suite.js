@@ -368,7 +368,8 @@ class Experiment {
     this.startCount = Math.trunc((this.attempt.count || 1) * this.options.dropRatio) || 1;
   }
   get isPending() {
-    return this.attempts.length < this.options.validateCount;
+    const {length} = this.attempts;
+    return length !== 0 && length < this.options.validateCount;
   }
   get cams() {
     return Math.round(mean(this.attempts.map(a => a.count)));

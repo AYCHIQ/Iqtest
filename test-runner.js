@@ -119,9 +119,14 @@ new Promise ((resolve, reject) => {
 .then(() => video.connect({ip: IP, host, reconnect: true}))
 .catch(stderr);
 
-iidk.onconnect(bootstrap);
+iidk.onconnect(function () {
+  if (ex.isPending) {
+    teardown('Lost connection during Attempt');
+  } else {
+    bootstrap();
+  }
+});
 iidk.onconnect(() => stderr('IIDK connected'));
-iidk.ondisconnect(() => { streamIdx -= 1; });
 iidk.ondisconnect(() => stderr('IIDK disconnected'));
 
 function bootstrap() {
