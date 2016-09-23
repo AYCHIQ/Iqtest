@@ -137,7 +137,7 @@ class Attempt {
       `dev: ${mad.toFixed(3)}\t` +
         `n: ${this.streamFps.all.length}{/}`);
 
-    if (isComplete && (mad * GOLDEN_RATIO_) > this.lastDev) {
+    if (isComplete && mad > this.lastDev * GOLDEN_RATIO_) {
       this.fps = median;
       this.streamFps.reset();
       return;
@@ -153,7 +153,7 @@ class Attempt {
   get isCalm() {
     if (this.samples.isComplete) {
       const dev = this.samples.mad;
-      const minimising = (dev * GOLDEN_RATIO_) < this.lastDev;
+      const minimising = dev < this.lastDev * GOLDEN_RATIO_;
 
       this.lastDev = dev;
       return !minimising;
