@@ -3,6 +3,16 @@ const {median, mad} = require('./mathutils.js');
 /**
  * @class SampleStore
  * @param {number} slen - number of samples to store
+ * @method init - add key to storage
+ * @method add - add value to samples of specified key
+ * @method delete - remove key and its' samples
+ * @method {array} get - returns samples for the key
+ * @method reset - resets all sample values to undefined
+ * @method {boolean} has- returns presence of samples for the key
+ * @property {boolean} isComplete -  whether we have completed sample length
+ * @property {array} all - returns array of all defined elements
+ * @property {number} mad - returns Median Absolute Deviation of samples
+ * @property {number} median - returns median of samples
  */
 class SampleStore {
   constructor(slen) {
@@ -12,28 +22,18 @@ class SampleStore {
     this._median = -1;
   }
   /**
-   * Add sample to storage
-   * @param {number} id - key for samples
-   * @param {number} val - value of the sample
-   * @method init - add key to storage
-   * @method add - add value to samples of specified key
-   * @method delete - remove key and its' samples
-   * @method {array} get - returns samples for the key
-   * @method reset - resets all sample values to undefined
-   * @method {boolean} has- returns presence of samples for the key
-   * @property {boolean} isComplete -  whether we have completed sample length
-   * @property {array} all - returns array of all defined elements
-   * @property {number} mad - returns Median Absolute Deviation of samples
-   * @property {number} median - returns median of samples
-   * @returns
-   */
-  /**
    * @param {number} id -- new storage key
    * @returns
    */
   init(id) {
    this.indices.set(id, -1);
   }
+  /**
+   * Add sample to storage
+   * @param {number} id - key for samples
+   * @param {number} val - value of the sample
+   * @returns
+   */
   add(id, val) {
     if (!this.indices.has(id)) {
       return;
