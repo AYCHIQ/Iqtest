@@ -39,6 +39,7 @@ const GOLDEN_RATIO_ = 1.618;
  * @property {number} target -- target number of cameras
  * @property {generator} pendingGen -- currently running generator
  * @property {array} lastSamples -- array of sample for last added camera
+ * @property {number} stage -- one of: NOT_STARTED, GET_FPS, TESTING, DONE
  * @method addOutFps -- add camera output FPS sample
  * @method addInFps -- add camera input FPS sample
  * @method hasOutFps -- returrns presence of FPS samples for the cam
@@ -48,9 +49,15 @@ const GOLDEN_RATIO_ = 1.618;
  * @method seek -- remove half of last camera number
  * @method clearCpu -- clear CPU samples 
  * @method handle -- collection of handlers
+ * @method nextState -- advance attempt stage
  */
 class Attempt {
   constructor(options, handlers) {
+    this.NOT_STARTED = -1;
+    this.GET_FPS = 0;
+    this.TESTING = 1;
+    this.DONE = 2;
+
     this.options = options;
     this.samples = new SampleStore(options.fpsLen);
     this.streamFps = new SampleStore(options.fpsLen);
@@ -63,10 +70,10 @@ class Attempt {
     this.ffHistory = [true];
     this.lastDev = Infinity;
     this.ignoreCPU = this.options.lastCount === 0 ? false : true;
-    this.isRunning = true;
     this.target = -1;
     this.pendingGen = (function* (){})();
     this.pendingGen.return();
+    this.stage = this.NOT_STARTED;
     /**
      * @namespace
      * @member add
@@ -177,6 +184,22 @@ class Attempt {
     return this.hasEnoughSamples &&
       this.samples.median > this.fpsIn * GOLDEN_RATIO;
   }
+  get isRunning() {
+    return 
+  }
+  /**
+   * Set stage number if specified or increment it.
+   * @param {number} stage -- stage to set
+   * @returns
+   */
+  nextStage(stage) {
+    if (stage > this.NOT_STARTED && stage <= this.DONE) {
+      this.stage = stage;
+    }
+    if (arguments.length === 0) {
+      this.stage += 1;
+    }
+  }
   targetCams(target) {
     let id = this.camId;
 
@@ -219,7 +242,7 @@ class Attempt {
         this.clearCpu();
         break;
       case 0:
-        this.isRunning = false;
+        this.nextStage(this.DONE);
         log(`${this.samples.median.toFixed(2)}/${this.fpsIn.toFixed(2)}`);
         this.handle.teardown();
         return;

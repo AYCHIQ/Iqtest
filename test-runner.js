@@ -121,7 +121,7 @@ new Promise ((resolve, reject) => {
 
 iidk.onconnect(bootstrap);
 iidk.onconnect(() => stderr('IIDK connected'));
-iidk.ondisconnect(() => streamIdx -= 1);
+iidk.ondisconnect(() => { streamIdx -= 1; });
 iidk.ondisconnect(() => stderr('IIDK disconnected'));
 
 function bootstrap() {
@@ -227,9 +227,15 @@ function captureFps() {
 }
 
 function warmUp() {
-  if (ex.attempt.lastSamples.length > 0) {
-    teardown('Lost connection during attempt');
-    return;
+  const {GET_FPS, TESTING} = ex.attempt;
+  switch (ex.attempt.stage) {
+    case TESTING:
+      teardown('Lost connection during attempt');
+      return;
+    case GET_FPS:
+      return
+    default:
+      ex.attempt.nextStage(GET_FPS);
   }
   stderr('Warming up...');
   chkSysReady(CPU_READY).then(captureFps).then(runTest)
@@ -244,6 +250,7 @@ function runTest() {
   /** SETUP */
   video.setupMonitor(attempt.options.monitorId);
   /**/
+  attempt.nextStage(attempt.TESTING);
   attempt.clearCpu();
   attempt.targetCams(ex.startCount);
   dash.showExInfo(ex);
