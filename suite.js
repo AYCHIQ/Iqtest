@@ -185,7 +185,7 @@ class Attempt {
       this.samples.median > this.fpsIn * GOLDEN_RATIO;
   }
   get isRunning() {
-    return 
+    return this.stage === this.TESTING; 
   }
   /**
    * Set stage number if specified or increment it.
