@@ -216,7 +216,6 @@ function captureFps() {
         ex.attempt.addFpsIn(fps);
       }
       if (ex.attempt.fpsIn !== 0) {
-        video.offstats();
         ex.handlers.remove(testCamId);
         stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}`);
         resolve();
@@ -229,7 +228,7 @@ function captureFps() {
 
 function warmUp() {
   if (ex.attempt.lastSamples.length > 0) {
-    teardown('Lost connection in during attempt');
+    teardown('Lost connection during attempt');
     return;
   }
   stderr('Warming up...');
@@ -362,7 +361,6 @@ function teardown(err) {
   const testTime = timing.elapsedString('test');
 
   ex.dropCount();
-  video.offstats();
   /** Make sure data makes sense */
   if (ex.attempt.count === 1 && ex.attempt.samples.median === 0) {
     err = 'Data is invalid!';

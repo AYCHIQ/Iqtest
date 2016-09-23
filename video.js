@@ -145,6 +145,7 @@ module.exports = {
     });
   },
   onstats(fn) {
+    this.offstats();
     video.on({type: 'STATISTIC', action: 'SET'}, fn);
   },
   offstats() {
