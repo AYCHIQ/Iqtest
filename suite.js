@@ -153,7 +153,7 @@ class Attempt {
   get isCalm() {
     if (this.samples.isComplete) {
       const dev = this.samples.mad;
-      const minimising = dev < this.lastDev * GOLDEN_RATIO_;
+      const minimising = dev < this.lastDev;
 
       this.lastDev = dev;
       return !minimising;
