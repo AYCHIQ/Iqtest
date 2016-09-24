@@ -177,7 +177,6 @@ function initTest () {
   ex.newAttempt();
   timing.init('test');
   return iidk.stopModule(VIDEO).then(() => iidk.startModule(VIDEO))
-    .then(warmUp)
     .catch(stderr);
 }
 /**
