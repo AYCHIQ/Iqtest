@@ -141,7 +141,7 @@ class Attempt {
       `dev: ${mad.toFixed(3)}\t` +
         `n: ${this.streamFps.all.length}{/}`);
 
-    if (isComplete && mad > this.lastDev * GOLDEN_RATIO_) {
+    if (isComplete && mad < fpsThreshold && mad > this.lastDev * GOLDEN_RATIO_) {
       this.fps = median;
       this.streamFps.reset();
       return;
