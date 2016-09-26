@@ -130,6 +130,10 @@ class Attempt {
     return this.samples.median;
   }
   addFpsIn(fps) {
+    const {fpsThreshold} = this.options;
+    if (fps <= fpsThreshold) {
+      return;
+    }
     this.streamFps.add(0, fps);
     const {isComplete, mad, median} = this.streamFps;
 
