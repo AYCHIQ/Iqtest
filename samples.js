@@ -1,5 +1,5 @@
 /* Math utils */
-const {median, mad} = require('./mathutils.js');
+const {mean, median, mad} = require('./mathutils.js');
 /**
  * @class SampleStore
  * @param {number} slen - number of samples to store
@@ -13,6 +13,7 @@ const {median, mad} = require('./mathutils.js');
  * @property {array} all - returns array of all defined elements
  * @property {number} mad - returns Median Absolute Deviation of samples
  * @property {number} median - returns median of samples
+ * @property {number} mean - returns mean of samples
  */
 class SampleStore {
   constructor(slen) {
@@ -99,6 +100,9 @@ class SampleStore {
       this._median = median(this.all);
     }
     return this._median;
+  }
+  get mean() {
+    return mean(this.all);
   }
 }
 
