@@ -66,7 +66,7 @@ class Attempt {
     this.monitorFails = 0;
     this.calmFails = 0;
     this.camId = 0;
-    this.camHistory = [this.options.lastCount];
+    this.camHistory = [0];
     this.ffHistory = [true];
     this.lastDev = Infinity;
     this.ignoreCPU = this.options.lastCount === 0 ? false : true;
