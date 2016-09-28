@@ -258,6 +258,7 @@ function runTest() {
   attempt.clearCpu();
   attempt.targetCams(ex.startCount);
   dash.showExInfo(ex);
+  stderr('Testing stage');
 
   video.onstats((msg) => {
     dash.showStatTs();
