@@ -135,14 +135,14 @@ class Attempt {
       return;
     }
     this.streamFps.add(0, fps);
-    const {isComplete, mad, mad} = this.streamFps;
+    const {isComplete, mad, median} = this.streamFps;
 
-    log(`{cyan-fg}mad: ${(mad).toFixed(2)}\t` +
+    log(`{cyan-fg}median: ${(median).toFixed(2)}\t` +
       `dev: ${mad.toFixed(3)}\t` +
         `n: ${this.streamFps.all.length}{/}`);
 
     if (isComplete && mad < fpsThreshold && mad > this.lastDev * GOLDEN_RATIO_) {
-      this.fps = mad;
+      this.fps = median;
       this.streamFps.reset();
       return;
     }
