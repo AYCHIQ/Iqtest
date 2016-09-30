@@ -215,7 +215,12 @@ function captureFps() {
   return new Promise((resolve, reject) => {
     pollStats();
     video.onstats((msg) => {
-      if (ex.attempt.fpsIn === 0 && ex.options.refRe.test(msg.id)) {
+      const isMetric =  ex.options.refRe.test(msg.id);
+
+      if(!isMetric) {
+        return;
+      }
+      if (ex.attempt.fpsIn === 0) {
         const fps = parseFloat(msg.params.fps);
         ex.attempt.addFpsIn(fps);
       }
