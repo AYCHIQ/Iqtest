@@ -217,6 +217,7 @@ function captureFps() {
     video.onstats((msg) => {
       const isMetric =  ex.options.refRe.test(msg.id);
 
+      pollStats();
       if(!isMetric) {
         return;
       }
@@ -230,7 +231,6 @@ function captureFps() {
         resolve();
         return;
       }
-      pollStats();
     });
   });
 }
