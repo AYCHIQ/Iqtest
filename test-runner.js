@@ -50,6 +50,7 @@ const getResources = () => Promise.all([fetchCPU(), fetchMem()]);
 const VIDEO = 'video.run core';
 const OK = true;
 const FAILED = false;
+const HIRES = true;
 
 /* @global */
 const streams = [];
@@ -416,7 +417,21 @@ function stderr(e) {
     }
   });
 }
-const pollStats = debounce(() => video.requestStats(), STAT_INTERVAL);
+function onstats(fn) {
+  video.onstats(function (msg) {
+    checkStatRTT();
+    ex.attempt.stattimeL = timing.elapsed('stat');
+    dash.showStatTs();
+    fn(msg);
+  })
+}
+const checkStatRTT = throttle(function () {
+  ex.attempt.stattime1 = timing.elapsed('stat');
+}, STAT_INTERVAL);
+const pollStats = debounce(function () {
+  timing.init('stat', HIRES);
+  video.requestStats();
+}, STAT_INTERVAL);
 const pollUsage = (function () {
   let timerId = null;
   /**
@@ -429,9 +444,11 @@ const pollUsage = (function () {
    */
   return function poll(cb) {
     clearTimeout(timerId);
-    timerId = setTimeout(() =>
+    timerId = setTimeout(function () {
+      timing.init('poll', HIRES);
       Promise.all([fetchCPU(), fetchMem()])
         .then(resources => {
+	 ex.attempt.wstime = timing.elapsed('poll');
           const shouldPoll = cb.apply(null, resources);
           if (shouldPoll) {
             poll(cb);
@@ -439,6 +456,7 @@ const pollUsage = (function () {
         })
         .catch(reason => {
           poll(cb);
-        }), CPU_INTERVAL);
+        })
+      }, CPU_INTERVAL);
   }
 })();

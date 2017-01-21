@@ -1,6 +1,7 @@
 'use strict';
 const blessed = require('blessed');
 const {debounce} = require('./utils');
+const MS_TO_SEC = 1e-3;
 
 const screen = blessed.screen({
   smartCSR: true,
@@ -43,19 +44,19 @@ const attemptInfo = blessed.box({
   left: 0,
   top: 5,
   tags: true,
-  width: 40,
-  height: 9, 
+  width: 70,
+  height: 11, 
 });
 const statTimestamp = blessed.box({
   left:0,
-  top: 15,
+  top: 16,
   tags: true,
-  width: 40,
+  width: 70,
   height: 1,
 });
 const logBox = blessed.Log({
   left: 0,
-  top: 17,
+  top: 18,
   content: 'log',
   width: '100%',
   height: 'shrink',
@@ -103,6 +104,11 @@ function showAttemptInfo(a, progressStr) {
       ['fps m:', a.fpsOut.toFixed(3)].join('{|}'),
       ['threshold:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
       ['CPU:', a.cpuSamples].join('{|}'),
+      ['resc RTT', (a.wstime * MS_TO_SEC).toFixed(3)].join('{|}'),
+      ['stat RTT',
+        (a.stattime1 * MS_TO_SEC).toFixed(3)
+        + '…' + (a.stattimeL * MS_TO_SEC).toFixed(3)
+      ].join('{|}'),
   ].join('\n'));
   render();
 }
