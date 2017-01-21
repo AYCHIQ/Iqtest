@@ -81,15 +81,14 @@ function log(msg) {
 
 function showExInfo(e) {
   if (!e) {
-    exInfo.pushLine('');
+    exInfo.insertTop(1, '');
     return;
   }
   const s = e.streamAttr;
   const counts = e.attempts.map(a => a.count);
+  const h = e.options.isHeadless ? '▂' : '▢';
   
-  exInfo.popLine();
-  exInfo.pushLine(`${s.vendor} ${s.format} ${s.width}x${s.height}@${s.fps}fps{|}${counts}`);
-  exInfo.setScrollPerc(100);
+  exInfo.setLine(1, `${h}${s.vendor} ${s.format} ${s.width}x${s.height}@${s.fps}fps{|}${counts}`);
   render();
 }
 

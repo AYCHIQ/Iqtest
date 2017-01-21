@@ -17,6 +17,7 @@ const IP = nconf.get('ip');
 const WSAUTH = nconf.get('wsauth');
 const IIDK_ID = nconf.get('iidk');
 const MONITOR = nconf.get('monitor');
+const HEADLESS = nconf.get('headless');
 const STREAM = nconf.get('stream');
 const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
@@ -148,16 +149,17 @@ function bootstrap() {
     maxFails: MAX_FAILS,
     monitorId: MONITOR,
     refRe: /GRABBER.*Receive/,
-    metricRe: /*/FileRecorder.*OUT/,*/ /CAM.*OUT/,
+    metricRe: HEADLESS ? /FileRecorder.*OUT/ : /CAM.*OUT/,
+    isHeadless: HEADLESS,
   });
   ex.stream = stream;
   ex.handlers = {
     add(id) { 
       video.setupIpCam(id, stream, {drives: REC_PATH});
-      video.showCam(id, ex.options.monitorId);
+      !ex.options.isHeadless && video.showCam(id, ex.options.monitorId);
     },
     remove(id) {
-      video.hideCam(id, ex.options.monitorId);
+      !ex.options.isHeadless && video.hideCam(id, ex.options.monitorId);
       video.removeIpCam(id);
     },
     teardown,
@@ -258,7 +260,7 @@ function runTest() {
    * Commence Test, when we are ready
    */
   /** SETUP */
-  video.setupMonitor(attempt.options.monitorId);
+  !ex.options.isHeadless && video.setupMonitor(attempt.options.monitorId);
   /**/
   attempt.nextStage(attempt.TESTING);
   attempt.clearCpu();
