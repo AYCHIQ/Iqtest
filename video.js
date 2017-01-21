@@ -184,7 +184,7 @@ module.exports = {
       params: Object.assign({}, MONITORPARAMS, {
         name,
         objname: name,
-      })
+      }, params)
     });
     video.sendReact({
       type: 'MONITOR',
