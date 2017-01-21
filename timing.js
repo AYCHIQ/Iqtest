@@ -7,17 +7,28 @@ class Timing {
   constructor() {
     this.time = new Map();
   }
-  init(key) {
-    this.time.set(key, Date.now());
+  init(key, hires) {
+    const time = hires ? process.hrtime() : Date.now();
+
+    this.time.set(key, time);
   }
   remove(key) {
     this.time.delete(key);
   }
   elapsed(key) {
-    return Date.now() - this.time.get(key);
+    const stime = this.time.get(key);
+    
+    if (Array.isArray(stime)) {
+      return this.toMs(process.hrtime(stime));
+    } else {
+      return Date.now() - stime;
+    }
   }
   elapsedString(key) {
     return this.getTimeString(this.elapsed(key));
+  }
+  toMs(hrtime) {
+    return hrtime[0] * 1e3 + hrtime[1] * 1e-6;
   }
   getTimeString(n) {
     const t = isFinite(n) ? n : 0;
