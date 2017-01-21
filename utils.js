@@ -13,7 +13,7 @@
  * returns {object}
  */
 function parseUri(uri) {
-  const locationRe = /location=([^`]+).+?!/;
+  const locationRe = /location=([^~]+).+?!/;
   const keys = ['vendor', 'format', 'width', 'height', 'fps'];
   if (locationRe.test(uri)) {
     return locationRe.exec(uri)[1] //get "location=..." fragment
