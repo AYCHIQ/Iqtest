@@ -217,23 +217,22 @@ function captureFps() {
   ex.handlers.add(testCamId);
   return new Promise((resolve, reject) => {
     pollStats();
-    video.onstats((msg) => {
+    onstats((msg) => {
       const isMetric =  ex.options.refRe.test(msg.id);
 
-      pollStats();
-      if(!isMetric) {
-        return;
-      }
-      if (ex.attempt.fpsIn === 0) {
+      if (isMetric && ex.attempt.fpsIn === 0) {
         const fps = parseFloat(msg.params.fps);
+
         ex.attempt.addFpsIn(fps);
       }
-      if (ex.attempt.fpsIn !== 0) {
+      if (isMetric && ex.attempt.fpsIn !== 0) {
         ex.handlers.remove(testCamId);
         stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}`);
         resolve();
         return;
       }
+      dash.showAttemptInfo(ex.attempt);
+      pollStats();
     });
   });
 }
@@ -268,8 +267,7 @@ function runTest() {
   dash.showExInfo(ex);
   stderr('Testing stage');
 
-  video.onstats((msg) => {
-    dash.showStatTs();
+  onstats((msg) => {
     const isMetric = ex.options.metricRe.test(msg.id);
     const id = isMetric ? parseInt(getId(msg.id)) : -1;
     const fps = isMetric ? parseFloat(msg.params.fps) : -1;
