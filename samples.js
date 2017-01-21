@@ -21,6 +21,8 @@ class SampleStore {
     this.samples = [];
     this.indices = new Map();
     this._median = -1;
+    this.ZERO = 0;
+    this.isVal = this.isVal.bind(this);
   }
   /**
    * @param {number} id -- new storage key
@@ -50,7 +52,7 @@ class SampleStore {
       return;
     }
     const startIdx = id * this.slen
-    this.samples.fill(undefined, startIdx, startIdx + this.slen);
+    this.samples.fill(this.ZERO, startIdx, startIdx + this.slen);
     this.indices.delete(id);
     this._median = -1;
   }
@@ -58,14 +60,17 @@ class SampleStore {
     if (!this.indices.has(id)) {
       return [];
     }
-    return this.samples.slice(id * this.slen, (id + 1) * this.slen - 1).filter(isFinite);
+    return this.samples.slice(id * this.slen, (id + 1) * this.slen - 1).filter(this.isVal);
   }
   reset() {
-    this.samples.fill(undefined);
+    this.samples.fill(this.ZERO);
     this._median = -1;
   }
   has(id) {
     return this.get(id).length > 0;
+  }
+  isVal(x) {
+    return x > this.ZERO;
   }
   get isComplete() {
     if (this.indices.size === 0) {
@@ -83,7 +88,7 @@ class SampleStore {
     return true; 
   }
   get all() {
-    return this.samples.filter(isFinite)
+    return this.samples.filter(this.isVal)
                        /** Skip last added sample since it increases deviation */
                        .filter((v, i) => {
                          const id = Math.floor(i / this.slen);
