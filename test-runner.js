@@ -44,7 +44,7 @@ const {
   fetchCPUInfo, fetchDate,
   fetchCPU, fetchMem,
 } = require('./wsutils')({ip: IP, auth: WSAUTH});
-const {report, getId, debounce} = require('./utils');
+const {report, getId, debounce, throttle} = require('./utils');
 const getResources = () => Promise.all([fetchCPU(), fetchMem()]);
 
 /* General constants */

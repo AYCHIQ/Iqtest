@@ -83,9 +83,29 @@ function debounce(fn, delay) {
   }
 };
 
+/**
+ * Make throttled function
+ * @param {function} fn -- function to call
+ * @param {number} delay -- timeout in ms
+ * @returns {function
+ */ 
+function throttle(fn, delay) {
+  let canRun = true;
+  const resetFlag = () => canRun = true;
+
+  return function () {
+    if (canRun) {
+      canRun = false;
+      setTimeout(resetFlag, delay);
+      fn.apply(null, arguments);
+    }
+  }
+}
+
 module.exports = {
   parseUri,
   report,
   getId,
   debounce,
+  throttle,
 };
