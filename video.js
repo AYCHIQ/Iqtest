@@ -1,6 +1,6 @@
 'use strict';
 const IqClient = require('iq-node').Client;
-const video = new IqClient(); 
+const video = new IqClient({regex: true}); 
 
 const GRABPARAMS = {
   auth: '',
@@ -41,7 +41,6 @@ const CAMPARAMS = {
   color: 1,
   compression: 2,
   compressor: '',
-  config_id: '',
   config_id: '',
   contrast: 5,
   decoder: 0,
@@ -116,7 +115,7 @@ module.exports = {
     video.disconnect();
   },
   stats(interval) {
-    video.on({type: 'IQ', action: 'CONNECTED'},
+    video.on(/IQ-CONNECTED/,
       () => video.sendReact({
         type: 'STATISTIC',
         action: 'START',
@@ -144,6 +143,12 @@ module.exports = {
       }
     });
   },
+  onregex(re, fn) {
+    video.on(re, fn);
+  },
+  offregex(re) {
+    video.off(re);
+  },
   onstats(fn) {
     this.offstats();
     video.on({type: 'STATISTIC', action: 'SET'}, fn);
@@ -151,21 +156,11 @@ module.exports = {
   offstats() {
     video.off({type: 'STATISTIC', action: 'SET'});
   },
-  onattach(fn) {
-    video.on({type: 'GRABBER', action: 'CONNECT_OK'}, fn);
-  },
-  offattach() {
-    video.on({type: 'GRABBER', action: 'CONNECT_OK'});
-  },
   onconnect(fn) {
-    video.on({type: 'IQ', action: 'CONNECTED'}, () => {
-      fn();
-    });
+    video.on(/IQ-CONNECTED/, fn);
   },
   ondisconnect(fn) {
-    video.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
-      fn();
-    });
+    video.on(/IQ-DISCONNECTED/, fn);
   },
   deleteObjs(type, id) {
     video.sendReact({

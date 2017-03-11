@@ -18,12 +18,12 @@ module.exports = {
       .then(this.resetKATimer.bind(this));
   },
   onconnect(fn) {
-    iidk.on({type: 'IQ', action: 'CONNECTED'}, () => {
+    iidk.on({type: 'IQ', action: 'IQ-CONNECTED'}, () => {
       fn();
     });
   },
   ondisconnect(fn) {
-    iidk.on({type: 'IQ', action: 'DISCONNECTED'}, () => {
+    iidk.on({type: 'IQ', action: 'IQ-DISCONNECTED'}, () => {
       fn();
     });
   },
@@ -68,9 +68,9 @@ module.exports = {
       }
     };
     const terminateComplete = {type: 'SLAVE', action: 'TERMINATE_COMPLETE'};
-    const timer = setInterval(() => iidk.sendCoreReact(stopReact), TIMEOUT);
+    const timer = setInterval(iidk.sendCoreReact, TIMEOUT, stopReact);
     return new Promise((resolve, reject) => {
-      iidk.on(terminateComplete, (msg) => {
+      iidk.on(terminateComplete, function(msg) {
         if (msg.params.command.includes(module)) {
           clearInterval(timer);
           iidk.off(terminateComplete);
