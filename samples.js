@@ -21,7 +21,7 @@ class SampleStore {
     this.samples = [];
     this.indices = new Map();
     this._median = -1;
-    this.ZERO = 0;
+    this.ZERO = 1;
     this.isVal = this.isVal.bind(this);
   }
   /**
@@ -73,14 +73,19 @@ class SampleStore {
     return x > this.ZERO;
   }
   get isComplete() {
-    if (this.indices.size === 0) {
+    if (this.indices.size == 0) {
       return false;
     }
     /** Check that last item for all ids is present */
-    for (let [id] of this.indices) {
+    const idxList = Array.from(this.indices.keys());
+    let i = idxList.length;
+
+    while(--i >= 0) {
+      const id = idxList[i];
       const idx = this.slen * id + this.slen - 1;
-      let sample = this.samples[idx];
-      if (!(sample > 0)) {
+      const sample = this.samples[idx];
+
+      if (!this.isVal(sample)) {
         return false;
       }
     }
