@@ -22,6 +22,8 @@ const STREAM = nconf.get('stream');
 const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL = nconf.get('interval');
 const STAT_TIMEOUT = STAT_INTERVAL * 5;
+const CALM_TIMEOUT = nconf.get('calm-timeout') * 1e3;
+const GEN_INTERVAL = nconf.get('gen-interval');
 const CPU_INTERVAL = nconf.get('cpu-interval');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
 const CPU_READY = nconf.get('cpu-ready-threshold');
@@ -146,6 +148,7 @@ function bootstrap() {
     fpsThreshold: FPS_THRESHOLD,
     cpuThreshold: CPU_THRESHOLD,
     validateCount: VALIDATE_COUNT,
+    genInterval: GEN_INTERVAL,
     maxFails: MAX_FAILS,
     monitorId: MONITOR,
     refRe: /GRABBER.*Receive/,
@@ -174,11 +177,17 @@ function bootstrap() {
 
 video.onconnect(warmUp);
 video.onconnect(() => stderr('Video connected'));
-video.ondisconnect(() => stderr('Video disconnected'));
+video.ondisconnect(function() {
+  stderr('Video disconnected');
+  restartModule();
+});
 
-function initTest () {
+function initTest() {
   ex.newAttempt();
   timing.init('test');
+  return restartModule();
+}
+function restartModule() {
   return iidk.stopModule(VIDEO).then(() => iidk.startModule(VIDEO))
     .catch(stderr);
 }
@@ -215,19 +224,18 @@ function captureFps() {
 
   stderr('Determining FPS');
   ex.handlers.add(testCamId);
-  return new Promise((resolve, reject) => {
+  return new Promise(function (resolve, reject) {
     pollStats();
-    onstats((msg) => {
-      const isMetric =  ex.options.refRe.test(msg.id);
-
-      if (isMetric && ex.attempt.fpsIn === 0) {
+    video.onregex(ex.options.refRe, function (msg) {
+      if (ex.attempt.fpsIn === 0) {
         const fps = parseFloat(msg.params.fps);
 
         ex.attempt.addFpsIn(fps);
       }
-      if (isMetric && ex.attempt.fpsIn !== 0) {
+      if (ex.attempt.fpsIn !== 0) {
         ex.handlers.remove(testCamId);
         stderr(`FPS: ${ex.attempt.fpsIn.toFixed(2)}`);
+	video.offregex(ex.options.refRe);
         resolve();
         return;
       }
@@ -254,38 +262,40 @@ function warmUp() {
 }
 
 function runTest() {
-  const attempt = ex.attempt;
   /**
    * Commence Test, when we are ready
    */
   /** SETUP */
-  !ex.options.isHeadless && video.setupMonitor(attempt.options.monitorId);
+  !ex.options.isHeadless && video.setupMonitor(ex.attempt.options.monitorId);
   /**/
-  attempt.nextStage(attempt.TESTING);
-  attempt.clearCpu();
-  attempt.targetCams(ex.startCount);
+  ex.attempt.nextStage(ex.attempt.TESTING);
+  ex.attempt.clearCpu();
+  ex.attempt.targetCams(ex.startCount);
   dash.showExInfo(ex);
   stderr('Testing stage');
 
-  onstats((msg) => {
-    const isMetric = ex.options.metricRe.test(msg.id);
-    const id = isMetric ? parseInt(getId(msg.id)) : -1;
-    const fps = isMetric ? parseFloat(msg.params.fps) : -1;
-    const isTargetCam = isMetric && id === attempt.target;
-    const isCurrentCam = isMetric && id === attempt.camId;
+  onstats(function (msg) {
+    const id = parseInt(getId(msg.id));
+    const fps = parseFloat(msg.params.fps);
 
-    if (isMetric && fps > 0) {
-      attempt.addOutFps(id, fps);
-      dash.showProgress(streams, streamIdx, timing);
-    }
+    ex.attempt.addOutFps(id, fps);
+    pollStats();
+  });
 
+  function calculate() {
+    const attempt = ex.attempt;
+    let shouldPass = false;
+
+    clearTimeout(ex.calcTimerId);
     /**
      * Sanity check
      * If current camera statistics provides FPS add next one
      */
-    if ((isCurrentCam && !isTargetCam && attempt.hasOutFps(id)) ||
-         attempt.camId === 0) {
-      const {target, count, cpu, hasEnoughSamples, hasSaneFps, fpsOut} = attempt;
+    const {count, target} = attempt;
+    const isTargetCam = count == target;
+
+    if ((!isTargetCam && attempt.hasOutFps(count)) || count == 0) {
+      const {cpu, hasSaneFps, fpsOut, hasEnoughSamples} = attempt;
       const {cpuThreshold} = attempt.options;
       /**
        * Stop adding estimated cameras if CPU is overloaded
@@ -294,95 +304,106 @@ function runTest() {
       if ((target > count && cpu.mean > cpuThreshold) || (hasEnoughSamples && !hasSaneFps)) {
 
         stderr(`Sanity alert {grey-fg}CPU:${cpu.max}% FPS:${fpsOut.toFixed(2)}{/}`);
-        attempt.pendingGen.return();
         attempt.finaliseCams();
       }
+      /**
+       * Initiate next iteratation
+       */
       attempt.pendingGen.next();
-      return;
+      shouldPass = true;
+    }
+    dash.showProgress(streams, streamIdx, timing);
+    dash.showAttemptInfo(attempt);
+
+    if (attempt.cpu.mean > attempt.options.cpuThreshold) {
+      attempt.seek(FAILED);
+      shouldPass = true;
     }
 
-    /** Ignore irrelevant statistics */
-    if (!isMetric) {
-      pollStats();
-      return;
-    }
-    if (isMetric && fps <= 0) {
-      return;
-    }
-
-    const shouldCalculate = isMetric && isTargetCam && attempt.hasEnoughCpu;
-    const isCalm = shouldCalculate ? attempt.isCalm : false;
-    const hasFullFps = shouldCalculate ? attempt.hasFullFps : false;
-    const isReady = shouldCalculate && isCalm;
+    const shouldCalculate = !shouldPass && attempt.hasEnoughCpu;
+    const isCalm = shouldCalculate && attempt.isCalm;
+    const hasFullFps = shouldCalculate && attempt.hasFullFps;
 
     /**
      *  Cameras has stable FPS means iteration is complete 
      **/
-    if (isReady && attempt.ignoreCPU) {
+    if (isCalm && attempt.ignoreCPU) {
       attempt.seek(hasFullFps);
-      return;
     }
 
     /** 
      * Add more cameras to saturate CPU,
      */
-    const estimateByCPU = isReady && !attempt.ignoreCPU && hasFullFps;
+    const estimateByCPU = isCalm && !attempt.ignoreCPU && hasFullFps;
     const n = estimateByCPU ? attempt.estimate : -Infinity; 
 
     /** Make sure that estimated number is higher than actual */
-    if (estimateByCPU && n > attempt.count) {
+    if (!shouldPass && estimateByCPU && n > attempt.count) {
       stderr(`Estimation {gray-fg}${n}{/}`);
       attempt.targetCams(n);
-      return;
+      shouldPass = true;
     } 
-    if (estimateByCPU && n <= attempt.count) {
+    if (!shouldPass && estimateByCPU && n <= attempt.count) {
       stderr(`Estimated less than current {gray-fg}${n}{/}`);
       attempt.seek(OK);
-      return;
+      shouldPass = true;
     }
 
     /**
      * We exceeded limit, and must seek to find it
      */
-    if (isReady && !hasFullFps) {
-      stderr(`Estimation overreached (fps: {gray-fg}${attempt.samples.median.toFixed(2)}{/})`);
+    if (!shouldPass && isCalm && !hasFullFps) {
+      stderr(`isComplete: ${attempt.samples.isComplete}, isCalm: ${attempt.isCalm}, local isCalm: ${isCalm}`);
+      stderr(`${attempt.samples.samples} (${attempt.samples.mad}`);
+      stderr(`Estimation overreached (fps: {gray-fg}${attempt.fpsOut.toFixed(2)}{/})`);
       attempt.seek(FAILED);
-      return;
+      shouldPass = true;
     }
 
     /**
      * FPS is settling down too long, presumably system is overloaded
      */
-    if (shouldCalculate && !isCalm && attempt.calmFails > ex.options.maxFails) {
-      stderr('Samples too random');
-      attempt.seek(FAILED);
-      return;
-    }
+    const calmPeriod = (Date.now() - attempt.lastOpTime);
 
-    dash.showAttemptInfo(attempt);
-    pollStats();
-  });
+    if (shouldCalculate && !isCalm && calmPeriod > CALM_TIMEOUT) {
+      stderr('Takes too long for FPS samples to settle');
+      attempt.seek(FAILED);
+      shouldPass = true;
+    }
+    ex.calcTimerId = setTimeout(calculate, GEN_INTERVAL);
+  }
+
   pollStats();
-  pollUsage((cpu, freeMB) => {
-    attempt.addCpu(cpu);
+  calculate();
+
+  pollUsage(function(cpu, freeMB) {
+    ex.attempt.addCpu(cpu);
     if (freeMB < FREEMB_THRESHOLD) {
       stderr('Not enough memory to continue');
       teardown();
     }
-    dash.showAttemptInfo(attempt);
+    dash.showAttemptInfo(ex.attempt);
 
-    return attempt.isRunning;
+    return ex.attempt.isRunning;
   });
 }
 
 function teardown(err) {
   const testTime = timing.elapsedString('test');
 
-  ex.dropCount();
+  clearTimeout(ex.calcTimerId);
+  video.offregex(ex.options.metricRe);
+  
+  if (ex.attempt.count < ex.startCount) {
+    err = 'Final count lower than initial';
+  }
+  
   /** Make sure data makes sense */
-  if (ex.attempt.count === 1 && ex.attempt.samples.median === 0) {
+  if (ex.attempt.count == 0 || ex.attempt.samples.median == 0) {
     err = 'Data is invalid!';
   }
+  
+  /** Invalidate last resalt and restart */
   if (err) {
     ex.invalidAtmp();
     stderr(err);
@@ -390,6 +411,7 @@ function teardown(err) {
     return;
   }
   /** Re-run test to get enough validation points */
+  ex.dropCount();
   stderr(`Max: ${ex.attempt.count}, finished in ${testTime}`);
   if (ex.isPending) {
     ex.maxCount = ex.attempt.count;
@@ -418,7 +440,7 @@ function stderr(e) {
   });
 }
 function onstats(fn) {
-  video.onstats(function (msg) {
+  video.onregex(ex.options.metricRe, function (msg) {
     checkStatRTT();
     ex.attempt.stattimeL = timing.elapsed('stat');
     dash.showStatTs();
