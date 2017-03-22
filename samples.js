@@ -21,7 +21,7 @@ class SampleStore {
     this.samples = [];
     this.indices = new Map();
     this._median = -1;
-    this.ZERO = 1;
+    this.ZERO = -1;
     this.isVal = this.isVal.bind(this);
   }
   /**
@@ -93,7 +93,7 @@ class SampleStore {
 
     while(--i >= 0) {
       const id = idxList[i];
-      const idx = this.sampleIdx(id) - 1;
+      const idx = this.sampleIdx(id + 1) - 1;
       const sample = this.samples[idx];
 
       if (!this.isVal(sample)) {
