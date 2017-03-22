@@ -41,9 +41,9 @@ class SampleStore {
     if (!this.indices.has(id)) {
       return;
     }
-    let i = (this.indices.get(id) + 1) % this.slen;
+    const i = this.roll(this.indices.get(id) + 1);
 
-    this.samples[id * this.slen + i] = val;
+    this.samples[this.sampleIdx(id) + i] = val;
     this.indices.set(id, i);
     this._median = -1;
   }
@@ -51,7 +51,8 @@ class SampleStore {
     if (!this.indices.has(id)) {
       return;
     }
-    const startIdx = id * this.slen
+    const startIdx = this.sampleIdx(id);
+
     this.samples.fill(this.ZERO, startIdx, startIdx + this.slen);
     this.indices.delete(id);
     this._median = -1;
@@ -60,7 +61,11 @@ class SampleStore {
     if (!this.indices.has(id)) {
       return [];
     }
-    return this.samples.slice(id * this.slen, (id + 1) * this.slen - 1).filter(this.isVal);
+    const startIdx = this.sampleIdx(id);
+
+    return this.samples
+      .slice(startIdx, startIdx + this.slen)
+      .filter(this.isVal);
   }
   reset() {
     this.samples.fill(this.ZERO);
@@ -72,7 +77,13 @@ class SampleStore {
   isVal(x) {
     return x > this.ZERO;
   }
-  get isComplete() {
+  sampleIdx(id) {
+    return id * this.slen;
+  }
+  roll(i) {
+    return i % this.slen;
+  }
+  get isComplete() { //TODO: Seem not to be working
     if (this.indices.size == 0) {
       return false;
     }
@@ -82,7 +93,7 @@ class SampleStore {
 
     while(--i >= 0) {
       const id = idxList[i];
-      const idx = this.slen * id + this.slen - 1;
+      const idx = this.sampleIdx(id) - 1;
       const sample = this.samples[idx];
 
       if (!this.isVal(sample)) {
@@ -93,14 +104,14 @@ class SampleStore {
     return true; 
   }
   get all() {
-    return this.samples.filter(this.isVal)
-                       /** Skip last added sample since it increases deviation */
-                       .filter((v, i) => {
-                         const id = Math.floor(i / this.slen);
-                         const idx = i % this.slen;
-
-                         return idx !== this.indices.get(id);
-                       });
+    return this.samples
+      .filter(this.isVal)
+      /** Skip last added sample since it increases deviation */
+      .filter((_, i) => (
+	this.roll(
+	  this.indices.get(Math.trunc(i / this.slen)) //eq: this.indices.get(id)
+	) != i
+      ));
   }
   get mad() {
     return mad(this.all);
