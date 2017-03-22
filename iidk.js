@@ -93,4 +93,17 @@ module.exports = {
     });
     this.resetKATimer();
   },
+  cleanupArch(drive) {
+    iidk.sendCoreReact({
+      id: '',
+      type: 'SLAVE',
+      action: 'CREATE_PROCESS',
+      params: {
+	command_line: `cmd /C rd /Q /S ${drive}\VIDEO`,
+      }
+    });
+    return new Promise(function (resolve, reject) {
+      setTimeout(resolve, 1e3);
+    });
+  }
 };
