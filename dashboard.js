@@ -75,7 +75,10 @@ screen.append(logBox);
 render();
 
 function log(msg) {
-  logBox.log(msg);
+  logBox.log(
+      `{grey-fg}${new Date() .toLocaleTimeString('en', {hour12: false})} {/}` +
+      msg
+  );
   render();
 };
 
@@ -98,7 +101,7 @@ function showAttemptInfo(a, progressStr) {
       ['count:', a.count.toString()].join('{|}'),
       ['target:', a.target.toString()].join('{|}'),
       ['history:', a.camHistory.slice(-4).toString()].join('{|}'),
-      ['S:', a.lastSamples.map(s => s.toFixed(2))].join('{|}'),
+      ['S:', a.lastSamples.map(s => s.toFixed(2)).slice(-5)].join('{|}'),
       ['dev:', a.lastDev.toFixed(3)].join('{|}'),
       ['fps m:', a.fpsOut.toFixed(3)].join('{|}'),
       ['threshold:', a.options.fpsThreshold.toFixed(3)].join('{|}'),
@@ -114,7 +117,7 @@ function showAttemptInfo(a, progressStr) {
 
 function showStatTs() {
   statTimestamp.setContent([
-    'last stat at:', (new Date()).toLocaleTimeString('de-DE')
+    'last stat at:', new Date() .toLocaleTimeString('en', {hour12: false})
   ].join('{|}'));
   render();
 }
