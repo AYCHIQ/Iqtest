@@ -63,7 +63,7 @@ const logBox = blessed.Log({
   scrollable: 'alwaysScroll',
   tags: true,
 });
-const render = debounce(() => screen.render(), 1000);
+const render = debounce(() => screen.render(), 200);
 screen.title = 'Intellect Platform Tester';
 screen.append(exInfo);
 screen.append(progressBar);

@@ -235,6 +235,11 @@ module.exports = {
   },
   removeIpCam(id) {
     video.sendReact({
+      type: 'CAM',
+      id,
+      action: 'DELETE',
+    });
+    video.sendReact({
       type: 'GRABBER',
       id,
       action: 'DELETE',

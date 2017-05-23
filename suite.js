@@ -2,6 +2,7 @@ const SampleStore = require('./samples');
 const {log} = require('./dashboard');
 const {parseUri} = require('./utils');
 const {pollStats} = require('./wsutils');
+const timing = require('./timing');
 /* Math utils */
 const {
   min, max,
@@ -16,14 +17,13 @@ const GOLDEN_RATIO_ = 1.618;
  * @param {object} handlers -- add/remove function holder
  * @property {map} monitorFps -- FPS displayed in monitor
  * @property {array} cpuSamples -- last CPU usage samples
- * @property {number} monitorFails -- number of time we suspected failure
  * @property {number} calmFails -- number of time samples were not calm
  * @property {number} count -- number of added cameras
  * @property {object} cpu -- returns min, mean, max CPU usage
  * @property {number} estimate -- number of cameras we can safely add
  * @property {number} camId -- recent camera Id
  * @property {array} camHistory -- history of camera numbers since begining 
- * @property {array} ffHistory -- history of fullFps calculation
+ * @property {array} ffHistory -- history of fullFps calculation (reversed)
  * @property {number} lastDev -- recent deviation value 
  * @property {boolean} ignoreCPU -- whether we exceeded CPU limit
  *                                  and should ignore CPU usage
@@ -42,6 +42,7 @@ const GOLDEN_RATIO_ = 1.618;
  * @property {array} lastSamples -- array of sample for last added camera
  * @property {number} lastiOpTime -- timestamp of last operation
  * @property {number} stage -- one of: NOT_STARTED, GET_FPS, TESTING, DONE
+ * @property {map} noFps -- map of counters to keep track of no stat cameras
  * @method addOutFps -- add camera output FPS sample
  * @method addInFps -- add camera input FPS sample
  * @method hasOutFps -- returrns presence of FPS samples for the cam
@@ -52,6 +53,7 @@ const GOLDEN_RATIO_ = 1.618;
  * @method clearCpu -- clear CPU samples 
  * @method handle -- collection of handlers
  * @method nextState -- advance attempt stage
+ * @method resetMetrics -- reset samples and deviation history
  */
 class Attempt {
   constructor(options, handlers) {
@@ -65,19 +67,19 @@ class Attempt {
     this.streamFps = new SampleStore(options.fpsLen);
     this.fps = 0;
     this.cpuSamples = [];
-    this.monitorFails = 0;
     this.calmFails = 0;
     this.camId = 0;
-    this.camHistory = [0];
-    this.ffHistory = [true];
+    this.camHistory = [];
+    this.ffHistory = [{count: 0, ff: true}];
     this.lastDev = Infinity;
     this.lastCalmTime = Date.now();
-    this.ignoreCPU = this.options.lastCount === 0 ? false : true;
+    this.ignoreCPU = false; //this.options.lastCount === 0 ? false : true;
     this.target = -1;
     this.pendingGen = (function* (){})();
     this.pendingTimer = -1;
     this.pendingGen.return();
     this.stage = this.NOT_STARTED;
+    this.noFps = timing;
     /**
      * @namespace
      * @member add
@@ -86,6 +88,11 @@ class Attempt {
      */
     this.handle = handlers;
     this.streamFps.init(0);
+
+    if (this.options.lastCount) {
+      this.camHistory.push(this.options.lastCount);
+      this.ffHistory.unshift({count: this.options.lastCount, ff: true});
+    }
   }
   /**
    * Add FPS sample for camera
@@ -95,8 +102,24 @@ class Attempt {
    * @returns
    */
   addOutFps(id, fps) {
+    const failPeriod = this.noFps.elapsed(id);
+    const isRelevant = id <= this.count;
+    let failed = !(fps > 0) && isRelevant;
+
     this.samples.add(id, fps);
-    this.monitorFails = 0;
+
+    if (failed && failPeriod > this.options.timeout) {
+      /** Reinit camera */
+      log(`Re-init ${id} fails for {cyan-fg}${this.noFps.elapsedString(id)}{/}`);
+      this.handle.reinit(id);
+      failed = false;
+    }
+    if (failed && !failPeriod) {
+      this.noFps.init(id);
+    }
+    if (!failed) {
+      this.noFps.remove(id);
+    }
   }
   hasOutFps(id) {
     return this.samples.has(id);
@@ -114,7 +137,7 @@ class Attempt {
    * @returns
    */
   clearCpu() {
-    this.cpuSamples = [];
+    this.cpuSamples.length = 0;
   }
   /**
    * Get CPU usage statistic 
@@ -140,35 +163,32 @@ class Attempt {
     }
     this.streamFps.add(0, fps);
     const {isComplete, mad, median} = this.streamFps;
+    const devThreshold = this.lastDev * GOLDEN_RATIO_;
 
-    log(`{cyan-fg}median: ${(median).toFixed(2)}\t` +
-      `dev: ${mad.toFixed(3)}\t` +
-        `n: ${this.streamFps.all.length}{/}`);
+    log(`median: {cyan-fg}${(median).toFixed(2)}\t` +
+      `dev: {cyan-fg}${mad.toFixed(3)}{/} ⦔${devThreshold.toFixed(3)}\t` +
+        `n: {cyan-fg}${this.streamFps.all.length}{/}`);
 
-    if (isComplete && mad < fpsThreshold &&
-	(mad > this.lastDev * GOLDEN_RATIO_)) {
+    if (isComplete && mad < this.options.fpsThreshold &&
+	(mad > devThreshold)) {
       this.fps = median;
-      this.streamFps.reset();
       return;
     }
     this.lastDev = isComplete ? mad : this.lastDev;
   }
   get hasEnoughCpu() {
-    return this.cpuSamples.length === this.options.cpuLen;
+    return this.cpuSamples.length == this.options.cpuLen;
   }
   get hasEnoughSamples() {
     return this.samples.isComplete;
   }
   get isCalm() {
-    if (this.samples.isComplete) {
-      const dev = this.samples.mad;
-      const minimising = dev < this.lastDev;
+      const {mad, median} = this.samples;
+      const minimising = mad < this.lastDev;
+      const acceptable = mad < this.options.fpsThreshold;
 
-      this.lastDev = dev;
-      return !minimising;
-    } else {
-      return false;
-    }
+      this.lastDev = mad;
+      return !minimising && acceptable;
   }
   get count() {
     return this.camId;
@@ -183,18 +203,20 @@ class Attempt {
     return estimated;
   }
   get hasFullFps() {
-    const samplesMedian = this.samples.median;
-    const delta = Math.abs(samplesMedian - this.fpsIn);
+    const fpsMedian = this.fpsOut;
+    const delta = Math.abs(fpsMedian - this.fpsIn);
     const value = delta < this.options.fpsThreshold;
 
     return value;
   }
   get hasSaneFps() {
-    return this.samples.median > this.fpsIn * GOLDEN_RATIO;
+    return !this.hasEnoughSamples ||
+      this.fpsOut > this.fpsIn * GOLDEN_RATIO;
   }
   get isRunning() {
-    return this.stage === this.TESTING; 
+    return this.stage == this.TESTING; 
   }
+  
   /**
    * Set stage number if specified or increment it.
    * @param {number} stage -- stage to set
@@ -214,86 +236,112 @@ class Attempt {
     this.pendingGen.return();
     this.target = target;
 
+    if (target == 0) {
+      this.handle.teardown('Stream failure');
+    }
+
+    log(`» {white-fg}${target}{/}`);
     switch (Math.sign(target - this.count)) {
       case 1:
-        //this.pendingGen = (function* () {
-          this.hasPendingGen = true;
-          for (id += 1; id <= this.target; id += 1) {
-            /** ADD */
-            this.samples.init(id);
-            this.handle.add(id);
-            this.camId = id;
+	this.pendingGen = (function* () {
+	  this.hasPendingGen = true;
+	  for (id += 1; id <= this.target; id += 1) {
+	    /** ADD */
+	    this.samples.init(id);
+	    this.handle.add(id);
+	    this.camId = id;
 	    this.lastOpTime = Date.now();
-            log(`+${this.camId}`);
-            /**/
-        //    yield;
-          }
-          this.finaliseCams();
-        //}).bind(this)();
-        this.clearCpu();
+	    //log(`+${this.camId}`);
+	    /**/
+	    yield;
+	  }
+	  this.finaliseCams();
+        }.bind(this))();
         break;
       case -1:
-        if (target < 1) {
-          this.handle.teardown('Stream failure');
-        }
-        //this.pendingGen = (function* () {
-          for (id; id > this.target && id > 1; id -= 1) {
-            /** REMOVE */
-            this.samples.delete(id);
-            this.handle.remove(id);
-            this.camId = id - 1;
+	this.pendingGen = (function* () {
+	  this.hasPendingGen = true;
+	  for (id; id > this.target && id > 1; id -= 1) {
+	    /** REMOVE */
+	    this.samples.delete(id);
+	    this.handle.remove(id);
+	    this.camId = id - 1;
 	    this.lastOpTime = Date.now();
-            log(`-${this.camId}`);
-            /**/
-        //    yield;
-          }
-          this.finaliseCams();
-        //}).bind(this)();
-        this.clearCpu();
+	    //log(`-${this.camId}`);
+	    /**/
+	    yield;
+	  }
+	  this.finaliseCams();
+	}.bind(this))();
         break;
       case 0:
         this.nextStage(this.DONE);
-        log(`${this.samples.median.toFixed(2)}/${this.fpsIn.toFixed(2)}`);
+        log(`${this.fpsOut.toFixed(2)}/${this.fpsIn.toFixed(2)}`);
         this.handle.teardown();
         return;
-        break;
       default:
         break;
     }
-    /** Reset calm metrics */
-    this.samples.reset();
-    this.lastDev = Infinity
-    this.calmFails = 0;
+
+    this.pendingGen.next();
+    this.resetMetrics();
   }
   finaliseCams() {
     clearTimeout(this.pendingTimer);
-    this.pendingGen.return();
+    this.hasPendingGen = false;
     this.target = this.camId;
+    this.resetMetrics();
+
+    if (this.camId != this.camHistory[this.camHistory.length - 1]) {
+      this.camHistory.push(this.camId);
+    }
   }
   seek(hasFullFps) {
-    this.camHistory.push(this.count);
-
     const camHist3 = this.camHistory.slice(-3);
-    const ffLast = this.ffHistory[this.ffHistory.length - 1];
+    const ffLast = this.ffHistory[0].ff;
     const ffNow = hasFullFps;
 
-    this.ffHistory.push(ffNow);
+    this.ffHistory.unshift({count: this.count, ff: ffNow});
     
     let target = this.count;
-    let diff = camHist3.slice(-2).reduce((r, v) => Math.abs(r - v), 0);
-    let isOptimistic = this.ffHistory.slice(-3).reduce((r, v) => r && v, true);
+    let diff = camHist3
+      .slice(-2)
+      .reduceRight((r, v) => Math.abs(r - v));
+    let isRepeated =
+      this.ffHistory.length > 3 &&
+      this.ffHistory.slice(0, 3)
+	.map(v => v.ff)
+	.reduce((r, v) => r == v);
 
-    if (ffNow !== ffLast) {
+    if (ffNow != ffLast) {
       diff /= 2;
     }
-    if(isOptimistic) {
-      diff *= GOLDEN_RATIO_;
+    if(isRepeated) {
+      const diffHist = this.camHistory
+	.map((c, idx, hist) => Math.abs(c - hist[idx - 1]) | 0);
+      const maxDiff = Math.max.apply(null, diffHist);
+
+      diff = Math.min(maxDiff, diff * GOLDEN_RATIO_) + 1;
     }
+
+    const lastSuccess = this.ffHistory.find(v => v.ff);
+
     this.ignoreCPU = true;
     target += ffNow ? diff : -diff;
+    target = Math.floor(target);
+    target = Math.max(target, lastSuccess.count);
 
-    log('Seek');
-    this.targetCams(Math.round(target)); 
+    log(
+	'Seek ' + (ffNow ? '{green-fg}' : '{red-fg}') +
+	this.fpsOut.toFixed(2) + '{/}'
+    );
+    this.targetCams(target); 
+  }
+  resetMetrics() {
+    this.samples.reset();
+    this.clearCpu();
+    this.lastDev = Infinity;
+    this.calmFails = 0;
   }
 }
 /** 
@@ -345,6 +393,7 @@ class Experiment {
     this._sattr = {};
     this.attempts = [];
     this.startCount = 1;
+    this.fails = 0;
     this.handlers = {}; 
   }
   newAttempt() {

@@ -99,11 +99,21 @@ module.exports = {
       type: 'SLAVE',
       action: 'CREATE_PROCESS',
       params: {
-	command_line: `cmd /C rd /Q /S ${drive}\VIDEO`,
+	command_line: `cmd /C del /Q /S ${drive}\VIDEO && rd /Q /S ${drive}\VIDEO`,
       }
     });
     return new Promise(function (resolve, reject) {
       setTimeout(resolve, 1e3);
     });
+  },
+  onattach(fn) {
+    iidk.on({action: 'ATTACH'}, fn);
+    iidk.on({action: 'DETACH'}, fn);
+  },
+  on() {
+    iidk.on.apply(iidk, arguments);
+  },
+  off() {
+    iidk.off.apply(iidk, arguments);
   }
 };

@@ -21,7 +21,7 @@ class SampleStore {
     this.samples = [];
     this.indices = new Map();
     this._median = -1;
-    this.ZERO = -1;
+    this.ZERO = 0;
     this.isVal = this.isVal.bind(this);
   }
   /**
@@ -105,13 +105,13 @@ class SampleStore {
   }
   get all() {
     return this.samples
-      .filter(this.isVal)
       /** Skip last added sample since it increases deviation */
       .filter((_, i) => (
 	this.roll(
 	  this.indices.get(Math.trunc(i / this.slen)) //eq: this.indices.get(id)
 	) != i
-      ));
+      ))
+      .filter(this.isVal);
   }
   get mad() {
     return mad(this.all);
