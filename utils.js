@@ -9,10 +9,10 @@
  *  height: 600,
  *  fps: 30
  * }
- * @params {string}
- * returns {object}
+ * @param {string}
+ * @returns {object} stream info
  */
-function parseUri(uri) {
+function _parseUri(uri) {
   const locationRe = /location=([^~]+).+?!/;
   const keys = ['vendor', 'format', 'width', 'height', 'fps'];
   if (locationRe.test(uri)) {
@@ -36,17 +36,62 @@ function parseUri(uri) {
 }
 
 /**
+ * Extract stream info from URI
+ * @param {string} uri -- RTSP URI
+ * @returns {object} stream info
+ */
+function parseUri(uri) {
+  const keyval = uri.match(/\w+=(\w+|\d+)/g);
+  const {width, height, framerate, profile, bitrate, pattern} = keyval
+    .map(kv => kv.split('='))
+    //overwrites duplicate keys with last occurence 
+    .reduce((props, kv) => (props[kv[0]] = kv[1], props), {})
+  ;
+
+  return {
+    vendor: 'GStreamer',
+    format: String(/\w+(?=enc)/.exec(uri)),
+    width, height, framerate,
+    profile, bitrate, pattern,
+  };
+}
+
+/**
+ * Format last attempt report
+ * @param {Experiment} e
+ * @returns {string}
+ */
+function reportLast(e) {
+  const {
+    vendor, format, pattern = 'n/a', profile = 'n/a',
+     width, height, framerate, bitrate = 'n/a',
+  } = e.streamAttr;
+  const lastAtmp = e.getAttempt(-1);
+  const cpu = lastAtmp.cpu.mean.toFixed(2);
+  const fps = lastAtmp.fpsIn.toFixed(2);
+  const cams = lastAtmp.count;
+  const sigma = -1;
+  const score = -1;
+  const start = e.start;
+  const elapsed = e.elapsed;
+
+  return ''
+    + `${vendor}	${format}	${profile}	${pattern}	`
+    + `${width}	${height}	${framerate}	${bitrate}	`
+    + `${fps}	${cams}	${sigma}	${cpu}	`
+    + `${score}	${start}	${elapsed}\n`;
+}
+
+/**
  * Format experiment report
  * @param {Experiment} e
  * @returns {string}
  */
 function report(e) {
-  const s = e.streamAttr;
-  const vendor = s.vendor;
-  const format = s.format;
-  const width = s.width;
-  const height = s.height;
-  const sfps = s.fps;
+  const {
+    vendor, format, pattern = 'n/a', profile = 'n/a',
+     width, height, framerate, bitrate = 'n/a',
+  } = e.streamAttr;
   const cpu = e.cpu.toFixed(2);
   const fps = e.fps.toFixed(2);
   const cams = e.cams;
@@ -55,9 +100,11 @@ function report(e) {
   const start = e.start;
   const elapsed = e.elapsed;
 
-  return `${vendor}\t${format}\t${width}\t${height}\t` +
-    `${sfps}\t${fps}\t${cams}\t${sigma}\t${cpu}\t` +
-    `${score}\t${start}\t${elapsed}\n`;
+  return ''
+    + `${vendor}	${format}	${profile}	${pattern}	`
+    + `${width}	${height}	${framerate}	${bitrate}	`
+    + `${fps}	${cams}	${sigma}	${cpu}	`
+    + `${score}	${start}	${elapsed}\n`;
 }
 
 /**
@@ -105,6 +152,7 @@ function throttle(fn, delay) {
 module.exports = {
   parseUri,
   report,
+  reportLast,
   getId,
   debounce,
   throttle,

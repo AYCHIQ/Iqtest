@@ -10,6 +10,7 @@ const {
 } = require('./mathutils.js');
 const GOLDEN_RATIO = 0.618;
 const GOLDEN_RATIO_ = 1.618;
+const A = 0.1;
 
 /**
  * @class Attempts
@@ -110,7 +111,8 @@ class Attempt {
 
     if (failed && failPeriod > this.options.timeout) {
       /** Reinit camera */
-      log(`Re-init ${id} fails for {cyan-fg}${this.noFps.elapsedString(id)}{/}`);
+      log(`Re-init ${id} fails for ` +
+	  `{cyan-fg}${failPeriod}{/}/${this.options.timeout}`);
       this.handle.reinit(id);
       failed = false;
     }
@@ -183,12 +185,14 @@ class Attempt {
     return this.samples.isComplete;
   }
   get isCalm() {
-      const {mad, median} = this.samples;
-      const minimising = mad < this.lastDev;
-      const acceptable = mad < this.options.fpsThreshold;
+    const {mad} = this.samples;
+    const minimising = mad < this.lastDev;
+    const ready = mad < this.options.fpsThreshold;
 
-      this.lastDev = mad;
-      return !minimising && acceptable;
+    this.lastDev = this.lastDev > mad ? mad :
+      this.lastDev * A + mad * (1 - A); 
+
+    return !minimising && ready;
   }
   get count() {
     return this.camId;
@@ -204,8 +208,8 @@ class Attempt {
   }
   get hasFullFps() {
     const fpsMedian = this.fpsOut;
-    const delta = Math.abs(fpsMedian - this.fpsIn);
-    const value = delta < this.options.fpsThreshold;
+    const delta = Math.abs(Math.trunc(fpsMedian) - Math.trunc(this.fpsIn));
+    const value = delta <= this.options.fpsThreshold;
 
     return value;
   }
@@ -438,10 +442,10 @@ class Experiment {
     return length !== 0 && length < this.options.validateCount;
   }
   get cams() {
-    return Math.round(mean(this.attempts.map(a => a.count)));
+    return Math.round(median(this.attempts.map(a => a.count)));
   }
   get camsDispersion() {
-    return stdDev(this.attempts.map(a => a.count));
+    return mad(this.attempts.map(a => a.count));
   }
   get cpu() {
     return mean(this.attempts.map(a => a.cpu.mean));
@@ -456,7 +460,7 @@ class Experiment {
     const fps = this.fps;
     const cpu = this.cpu;
 
-    return (width * height * cams * fps) / (Math.pow(2, 20) * cpu);
+    return (width * height * cams * fps) / ((1 << 20) * cpu);
   }
 
 }

@@ -3,6 +3,7 @@
 const fs = require('fs');
 const uuid = require('uuid');
 const nconf = require('nconf');
+const programme = require('blessed').program();
 const iidk = require('./iidk');
 const video = require('./video');
 const timing = require('./timing');
@@ -22,8 +23,9 @@ const STREAM = nconf.get('stream');
 const STREAM_PATH = nconf.get('stream-list');
 const STAT_INTERVAL_FAST = nconf.get('fast-interval');
 const STAT_INTERVAL = nconf.get('interval');
+const MAX_FAILS = nconf.get('fails');
 const CALM_TIMEOUT = nconf.get('calm-timeout') * 1e3;
-const STAT_TIMEOUT = CALM_TIMEOUT / 10;
+const STAT_TIMEOUT = STAT_INTERVAL * MAX_FAILS;
 const GEN_INTERVAL = nconf.get('gen-interval');
 const CPU_INTERVAL = nconf.get('cpu-interval');
 const CPU_THRESHOLD = nconf.get('cpu-threshold');
@@ -38,7 +40,6 @@ const INIT_COUNT = nconf.get('cams');
 const REPORT_PATH = nconf.get('report-path');
 const VALIDATE_COUNT = nconf.get('validate');
 const DROP_RATIO = 1 - nconf.get('drop');
-const MAX_FAILS = nconf.get('fails');
 
 /** Suite tools */
 const {Attempt, Experiment} = require('./suite');
@@ -47,7 +48,7 @@ const {
   fetchCPUInfo, fetchDate,
   fetchCPU, fetchMem,
 } = require('./wsutils')({ip: IP, auth: WSAUTH});
-const {report, getId, debounce, throttle} = require('./utils');
+const {report, reportLast, getId, debounce, throttle} = require('./utils');
 const getResources = () => Promise.all([fetchCPU(), fetchMem()]);
 
 /* General constants */
@@ -58,6 +59,7 @@ const HIRES = true;
 
 /* @global */
 const streams = [];
+let onHold = false;
 let host = '';
 let fileStream;
 let streamIdx = 0;
@@ -77,6 +79,24 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, p) => {
   stderr('Unhandled Rejection at: Promise', p, 'reason: ', reason.stack);
 });
+programme.on('keypress', function (ch, key) {
+  switch (key.full) {
+    case 'q':
+      process.exit(0);
+      break;
+    case 'h':
+    case 's':
+    case 'p':
+      onHold = !onHold;
+      dash.log(onHold ? 'Pause' : 'Continue');
+      break;
+    case 't':
+      fastPollStats();
+    default:
+      break;
+  }
+});
+
 
 /* Prepare video stream URI */
 new Promise ((resolve, reject) => {
@@ -111,16 +131,24 @@ new Promise ((resolve, reject) => {
       host = hostname;
       fileStream = fs.createWriteStream(path);
 
-      fileStream.write(`OS\t${osName}\n`);
-      fileStream.write(`CPU\t${processor}\n`);
-      fileStream.write(`Board\t${board}\n`);
-      fileStream.write(`RAM\t${ramSize.toFixed(2)}GB\n`);
-      fileStream.write(`Attempts\t${VALIDATE_COUNT}\n`);
-      fileStream.write(`Stat. interval\t${STAT_INTERVAL}\n`);
-      fileStream.write(`CPU usage samples\t${CPU_SAMPLES}\n`);
-      fileStream.write(`FPS samples\t${FPS_SAMPLES}\n`);
-      fileStream.write(`FPS threshold\t${FPS_THRESHOLD}\n`);
-      fileStream.write(`Vendor\tFormat\tWidth\tHeight\tFPS\tFPS(input)\tMax.cameras\tσ\tCPU\tScore\tStart time\tElapsed time\n`);
+      fileStream.write(
+`OS	${osName}
+CPU	${processor}
+Board	${board}
+RAM	${ramSize.toFixed(2)}GB
+Attempts	${VALIDATE_COUNT}
+Stat. interval	${STAT_INTERVAL}
+CPU usage samples	${CPU_SAMPLES}
+FPS samples	${FPS_SAMPLES}
+FPS threshold	${FPS_THRESHOLD}
+Entropy
+smpte	0.99963
+ball	0.03525
+snow	1.00000
+
+Vendor	Format	Profile	Pattern	Width	Height	FPS	Bitrate	FPS(input)	Max.cameras	σ	CPU	Score	Start time	Elapsed time
+`
+      );
     });
 })
 .then(() => iidk.connect({ip: IP, host, iidk: IIDK_ID, reconnect: true}))
@@ -157,6 +185,7 @@ function bootstrap() {
     timeout: STAT_TIMEOUT,
     monitorId: MONITOR,
     refRe: /GRABBER.*Receive/,
+    metricInRe: HEADLESS ? /FileRecorder.*IN/ : /CAM.*IN/,
     metricRe: HEADLESS ? /FileRecorder.*OUT/ : /CAM.*OUT/,
     isHeadless: HEADLESS,
   });
@@ -352,7 +381,7 @@ function runTest() {
 
   function calculate() {
     const attempt = ex.attempt;
-    let shouldPass = attempt.hasPendingGen;
+    let shouldPass = attempt.hasPendingGen || onHold;
 
     clearTimeout(ex.calcTimerId);
 
@@ -494,6 +523,7 @@ function teardown(err) {
   /** Re-run test to get enough validation points */
   ex.dropCount();
   stderr(`Max: ${count}, finished in ${testTime}`);
+  stdout(reportLast(ex));
   if (ex.isPending) {
     ex.maxCount = count;
     initTest();

@@ -1,5 +1,5 @@
 /* Math utils */
-const {mean, median, mad} = require('./mathutils.js');
+const {mean, median, mad, stdDev} = require('./mathutils.js');
 /**
  * @class SampleStore
  * @param {number} slen - number of samples to store
@@ -115,6 +115,9 @@ class SampleStore {
   }
   get mad() {
     return mad(this.all);
+  }
+  get stdDev() {
+    return stdDev(this.all);
   }
   get median() {
     if (this._median === -1) {

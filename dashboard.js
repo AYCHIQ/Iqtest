@@ -91,7 +91,12 @@ function showExInfo(e) {
   const counts = e.attempts.map(a => a.count);
   const h = e.options.isHeadless ? '▂' : '▢';
   
-  exInfo.setLine(1, `${h}${s.vendor} ${s.format} ${s.width}x${s.height}@${s.fps}fps{|}${counts}`);
+  exInfo.setLine(1, ''
+    + `${h}${s.vendor} ${s.format} ${s.pattern} `
+    + `${s.profile} ${s.bitrate}bps `
+    + `${s.width}x${s.height}@${s.framerate}fps `
+    + `{|}${counts}`
+  );
   render();
 }
 
@@ -157,7 +162,6 @@ function processorUsageString(attempt) {
 
   return `${min}%…${mean}%…${max}%`;
 }
-
 
 module.exports = {
   log,
